@@ -4,8 +4,8 @@ sealed class MainCurrentBottomSheet() {
     object Empty: MainCurrentBottomSheet()
     object FindLocation: MainCurrentBottomSheet()
 //    object AddPost: MainCurrentBottomSheet()
-    object MakeTeamProfile: MainCurrentBottomSheet()
-    object UpdateMyProfile: MainCurrentBottomSheet()
+    object CreateTeamProfile: MainCurrentBottomSheet()
+    object UpdateProfile: MainCurrentBottomSheet()
     object UpdateTeamProfile: MainCurrentBottomSheet()
 }
 

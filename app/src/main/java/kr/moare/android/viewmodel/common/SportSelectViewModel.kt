@@ -17,6 +17,8 @@ class SportSelectViewModel @Inject constructor(
 ): ViewModel() {
     val api = JoinAPI()
 
+    val loading = MutableStateFlow(true)
+
     var sportList = MutableStateFlow<MutableMap<String, Boolean>>(mutableStateMapOf())
     var newSportList = MutableStateFlow<MutableMap<String, Boolean>>(mutableStateMapOf())
     var selectedSport = MutableStateFlow<MutableList<String>>(mutableStateListOf())
@@ -25,16 +27,19 @@ class SportSelectViewModel @Inject constructor(
         getSportList()
     }
 
-    fun getSportList() {
+    private fun getSportList() {
         viewModelScope.launch {
+            loading.value = true
             kotlin.runCatching {
                 api.getSportList()
             }.onSuccess {
                 it.sportList.forEach { sport ->
                     sportList.value[sport] = false
                 }
+                loading.value = false
                 Log.d("success", "$it")
             }.onFailure {
+                loading.value = false
                 Log.d("fail", "$it")
             }
         }

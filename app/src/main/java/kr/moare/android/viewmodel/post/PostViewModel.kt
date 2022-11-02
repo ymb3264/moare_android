@@ -62,7 +62,6 @@ class PostViewModel @Inject constructor(
     )
 
     var showingGallry = MutableStateFlow(false)
-    var mediaUriList = MutableStateFlow<MutableList<Uri>>(mutableStateListOf())
 
     val isRefreshing = MutableStateFlow(false)
 

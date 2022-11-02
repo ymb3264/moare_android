@@ -7,36 +7,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import kr.moare.android.components.*
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.view.common.FindLocationView
-import kr.moare.android.entities.TeamProfile
 import kr.moare.android.utils.SubCurrentBottomSheet
 import kr.moare.android.view.common.ProfileGalleryView
 import kr.moare.android.view.common.SportAddView
+import kr.moare.android.viewmodel.common.GalleryViewModel
 import kr.moare.android.viewmodel.profile.ProfileViewModel
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun MakeTeamProfileView(
+fun TeamProfileCreateView(
     bottomSheet: BottomSheet,
-    profileVM: ProfileViewModel
+    profileVM: ProfileViewModel,
+    galleryVM: GalleryViewModel = hiltViewModel()
 ) {
-    var host by remember { mutableStateOf("") }
     var teamUsername by remember { mutableStateOf("") }
     var teamName by remember { mutableStateOf("") }
-     var introduction by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
 
-    val selectedImage by profileVM.selectedImage.collectAsState()
-    val croppedImage by profileVM.croppedImage.collectAsState()
+    val croppedImage by galleryVM.croppedImage.collectAsState()
 
     val sport = profileVM.newTeamProfile.sport
     val place = profileVM.newTeamProfile.place
 
     val completeBtnEnabled = profileVM.username.isNotEmpty() && teamUsername.isNotEmpty() && teamName.isNotEmpty()
-
-    val teamProfile = TeamProfile("", "", "", "", "",
-        "", listOf(), listOf(), listOf(), listOf())
 
     BottomSheetScaffold(
         scaffoldState = bottomSheet.subSheetScaffoldState,
@@ -73,7 +70,7 @@ fun MakeTeamProfileView(
                     )
                     SubCurrentBottomSheet.Gallery -> ProfileGalleryView(
                         bottomSheet = bottomSheet,
-                        profileVM = profileVM
+                        galleryVM = galleryVM
                     )
                     SubCurrentBottomSheet.Empty -> EmptyView()
                 }
@@ -86,25 +83,21 @@ fun MakeTeamProfileView(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProfileImageAddButton(
-                croppedImage
-            ) {
+            ProfileImageAddButton(null, croppedImage) {
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
             }
 
             SearchViewButton(
                 sport = sport,
                 place = null,
-                required = false,
-                expanded = sport.isNotEmpty()
+                required = false
             ) {
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.SearchSport)
             }
             SearchViewButton(
                 sport = null,
                 place = place,
-                required = false,
-                expanded = place.isNotEmpty()
+                required = false
             ) {
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.FindLocation)
             }
@@ -112,20 +105,21 @@ fun MakeTeamProfileView(
             CustomPlainTextField2(
                 modifier = Modifier,
                 placeholder = "팀 정보(소개글)",
-                text = introduction,
-                required = false,
-                expanded = introduction.isNotEmpty(),
+                text = content,
                 onTextChange = {
-                    introduction = it
-                })
+                    content = it
+                    profileVM.newTeamProfile.content = it
+                },
+                required = false
+            )
 
             CustomPlainTextField1(
                 modifier = Modifier
                     .padding(vertical = 6.dp),
                 placeholder = "생성자(관리자)",
                 text = profileVM.username,
-                expanded = profileVM.username.isNotEmpty(),
                 onTextChange = {},
+                expanded = profileVM.username.isNotEmpty(),
                 readOnly = true
             )
             CustomPlainTextField1(
@@ -133,29 +127,26 @@ fun MakeTeamProfileView(
                     .padding(vertical = 6.dp),
                 placeholder = "팀 사용자 명",
                 text = teamUsername,
-                expanded = teamUsername.isNotEmpty(),
                 onTextChange = {
                     teamUsername = it
                     profileVM.newTeamProfile.username = it
-                }
+                },
+                expanded = teamUsername.isNotEmpty()
             )
             CustomPlainTextField1(
                 modifier = Modifier
                     .padding(vertical = 6.dp),
                 placeholder = "팀 명",
                 text = teamName,
-                expanded = teamName.isNotEmpty(),
                 onTextChange = {
                     teamName = it
                     profileVM.newTeamProfile.name = it
-                }
+                },
+                expanded = teamName.isNotEmpty()
             )
 
-            CompleteButton(
-                text = "생성",
-                enabled = completeBtnEnabled
-            ) {
-                profileVM.makeTeamProfile(teamProfile)
+            CompleteButton(text = "생성", enabled = completeBtnEnabled) {
+                profileVM.createTeamProfile(croppedImage)
                 bottomSheet.mainCloseSheet()
             }
         }

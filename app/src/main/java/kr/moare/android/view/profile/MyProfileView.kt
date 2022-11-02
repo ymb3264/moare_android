@@ -12,18 +12,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import kr.moare.android.R
 import kr.moare.android.components.*
 import kr.moare.android.entities.BottomSheet
-import kr.moare.android.utils.MainCurrentBottomSheet
-import kr.moare.android.utils.MainNavItem
-import kr.moare.android.utils.MyProfileNavItem
-import kr.moare.android.utils.isScrollingUp
+import kr.moare.android.utils.*
 import kr.moare.android.view.*
 import kr.moare.android.viewmodel.profile.ProfileViewModel
 
@@ -87,8 +86,33 @@ fun MyProfileView(
                         .padding(horizontal = 10.dp)
                         .clip(CircleShape)
                         .size(120.dp)
-                        .background(MaterialTheme.colors.primary)
-                )
+                ) {
+                    if (profile.profileImage.isEmpty()) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_person),
+                            contentDescription = "",
+                            tint = Color.Gray,
+                            modifier = Modifier
+//                                .clip(CircleShape)
+                                .size(120.dp)
+                                .background(Color.LightGray),
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Transparent),
+                        ) {
+                            AsyncImage(
+                                model = profile.profileImage,
+                                contentDescription = "image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
+                }
+
 
                 Column(
                     modifier = Modifier
@@ -99,14 +123,14 @@ fun MyProfileView(
                     Text(text = profile.name)
                     Text(text = profile.content)
                     Text(text = profile.place)
-                    Text(text = "www.youtube.com")
                 }
             }
 
             Text(
                 text = profile.sport.joinToString(" "),
                 modifier = Modifier
-                    .padding(start = 20.dp, end = 10.dp, bottom = 10.dp)
+                    .padding(start = 20.dp, end = 10.dp, bottom = 10.dp),
+                color = MaterialTheme.colors.primary
             )
 
             Row(
@@ -118,11 +142,8 @@ fun MyProfileView(
             ) {
                 TextButton(
                     onClick = {
-//                        navController.currentBackStackEntry?.savedStateHandle?.set(
-//                            "profile",
-//                            profile
-//                        )
-                        myProfileNavController.navigate("${MyProfileNavItem.FOLLOWLIST.name}/${0}")
+                        myProfileNavController.currentBackStackEntry?.savedStateHandle?.set("profile", profile)
+                        myProfileNavController.navigate("${UserProfileNavItem.FOLLOWLIST.name}/${0}")
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColors(
@@ -142,7 +163,8 @@ fun MyProfileView(
                 }
                 TextButton(
                     onClick = {
-                        myProfileNavController.navigate("${MyProfileNavItem.FOLLOWLIST.name}/${1}")
+                        myProfileNavController.currentBackStackEntry?.savedStateHandle?.set("profile", profile)
+                        myProfileNavController.navigate("${UserProfileNavItem.FOLLOWLIST.name}/${1}")
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColors(
@@ -162,7 +184,8 @@ fun MyProfileView(
                 }
                 TextButton(
                     onClick = {
-                        myProfileNavController.navigate("${MyProfileNavItem.FOLLOWLIST.name}/${2}")
+                        myProfileNavController.currentBackStackEntry?.savedStateHandle?.set("profile", profile)
+                        myProfileNavController.navigate("${UserProfileNavItem.FOLLOWLIST.name}/${2}")
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColors(
@@ -188,9 +211,9 @@ fun MyProfileView(
                     .padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ProfileButton(modifier = Modifier, text = "팀 프로필 생성") { bottomSheet.mainOpenSheet(MainCurrentBottomSheet.MakeTeamProfile) }
+                ProfileButton(modifier = Modifier, text = "팀 프로필 생성") { bottomSheet.mainOpenSheet(MainCurrentBottomSheet.CreateTeamProfile) }
                 Spacer(Modifier.weight(0.1f))
-                ProfileButton(modifier = Modifier, text = "프로필 편집") { bottomSheet.mainOpenSheet(MainCurrentBottomSheet.UpdateMyProfile) }
+                ProfileButton(modifier = Modifier, text = "프로필 편집") { bottomSheet.mainOpenSheet(MainCurrentBottomSheet.UpdateProfile) }
             }
 
             ProfileDivideLine()

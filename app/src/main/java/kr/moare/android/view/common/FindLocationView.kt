@@ -17,7 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kr.moare.android.components.SearchBar
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.viewmodel.location.LocationViewModel
-import kr.moare.android.viewmodel.post.PostAddViewModel
+import kr.moare.android.viewmodel.post.PostCreateViewModel
 import kr.moare.android.viewmodel.profile.ProfileViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun FindLocationView(
     bottomSheet: BottomSheet,
-    postAddVM: PostAddViewModel?,
+    postAddVM: PostCreateViewModel?,
     profileVM: ProfileViewModel?,
     locationVM: LocationViewModel = hiltViewModel()
 ) {

@@ -21,12 +21,14 @@ import kr.moare.android.utils.MyProfileNavItem
 import kr.moare.android.viewmodel.profile.ProfileViewModel
 import com.google.accompanist.pager.*
 import kotlinx.coroutines.launch
+import kr.moare.android.entities.UserProfile
+import kr.moare.android.utils.UserProfileNavItem
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun FollowListView(
     navController: NavController,
-    profileVM: ProfileViewModel,
+    profile: UserProfile,
     page: Int
 ) {
     val tabPagerState = rememberPagerState(page)
@@ -35,8 +37,6 @@ fun FollowListView(
     val teamList = listOf("team1", "team2")
     val follwerList = listOf("follower1", "follower1")
     val followingList = listOf("following1", "following1")
-
-    val profile by profileVM.profile.collectAsState()
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -117,19 +117,19 @@ fun FollowList(list: List<String>, navController: NavController) {
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         items(list) { username ->
-            TextButton(onClick = {
-                if (username.endsWith("-t")) {
-                    navController.navigate("${MyProfileNavItem.TEAMPROFILE.name}/$username")
-                } else {
-                    navController.navigate("${MyProfileNavItem.USERPROFILE.name}/$username")
-                }
-            },
+            TextButton(
+                onClick = {
+                    navController.navigate("${UserProfileNavItem.USERPROFILE.name}/$username")
+                },
                 contentPadding = PaddingValues(0.dp),
-                colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
+                colors = ButtonDefaults.textButtonColors(contentColor = Color.Black),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "$username",
+                Text(
+                    text = "$username",
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Normal
+                    fontWeight = FontWeight.Normal,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

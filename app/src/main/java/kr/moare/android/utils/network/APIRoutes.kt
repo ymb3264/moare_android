@@ -2,6 +2,7 @@ package kr.moare.android.utils.network
 
 object APIRoutes {
     private const val host = "http://10.0.2.2:8080"
+//    private const val host = "http://moare-test.us-east-1.elasticbeanstalk.com"
 
     // join
     const val join = "$host/join"
@@ -28,7 +29,7 @@ object APIRoutes {
     // search
     const val search = "$host/search"
     const val hashtag = "$search/hashtag"
-    const val username_search = "$search/username"
+    const val searchUser = "$search/username"
 
     // location
     private const val kakaoLocal = "https://dapi.kakao.com/v2/local"

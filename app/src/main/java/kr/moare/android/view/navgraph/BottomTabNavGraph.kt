@@ -25,8 +25,8 @@ import kr.moare.android.entities.BottomSheet
 import kr.moare.android.utils.BottomTabNavItem
 import kr.moare.android.utils.MainCurrentBottomSheet
 import kr.moare.android.view.common.FindLocationView
-import kr.moare.android.view.profile.MakeTeamProfileView
-import kr.moare.android.view.profile.UpdateMyProfileView
+import kr.moare.android.view.profile.TeamProfileCreateView
+import kr.moare.android.view.profile.UpdateProfileView
 import kr.moare.android.view.profile.UpdateTeamProfileView
 import kr.moare.android.viewmodel.post.PostViewModel
 import kr.moare.android.viewmodel.profile.ProfileViewModel
@@ -53,14 +53,14 @@ fun BottomTabNavGraph(
                     null,
                     null
                 )
-                MainCurrentBottomSheet.MakeTeamProfile -> {
+                MainCurrentBottomSheet.CreateTeamProfile -> {
                     Log.d("dsss", "ssdsf")
-                    MakeTeamProfileView(
+                    TeamProfileCreateView(
                         bottomSheet,
                         profileVM
                     )
                 }
-                MainCurrentBottomSheet.UpdateMyProfile -> UpdateMyProfileView(
+                MainCurrentBottomSheet.UpdateProfile -> UpdateProfileView(
                     bottomSheet,
                     profileVM
                 )

@@ -11,7 +11,7 @@ enum class StartNavItem {
 }
 
 enum class MainNavItem {
-    MAIN, ADDPOST, MESSAGELIST
+    MAIN, POSTCREATE, MESSAGELIST
 }
 
 enum class BottomTabNavItem(val icon: Int?) {
@@ -24,12 +24,16 @@ enum class PostNavItem {
     POST, POSTDETAIL, USERPROFILE, TEAMPROFILE
 }
 
-enum class AddPostNavItem {
-    ADDPOST, ADDPOSTDETAIL
+enum class PostCreateNavItem {
+    POSTCREATE, POSTCCREATEDETAIL
 }
 
 enum class MyProfileNavItem {
-    MYPROFILE, POSTDETAIL, FOLLOWLIST, USERPROFILE, TEAMPROFILE
+    MYPROFILE
+}
+
+enum class UserProfileNavItem {
+    USERPROFILE, FOLLOWLIST, POSTDETAIL
 }
 
 

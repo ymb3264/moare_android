@@ -625,27 +625,6 @@ fun ContentTextFieldLine(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ColumnScope.CompleteButton(
-    text: String,
-    enabled: Boolean = false,
-    onClick: () -> Unit
-) {
-    val color = if (enabled) MaterialTheme.colors.primary else Color.Gray
-
-    Button(onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            backgroundColor = Color.Transparent
-        ),
-        elevation = ButtonDefaults.elevation(
-            defaultElevation = 0.dp
-        ),
-        border = BorderStroke(1.dp, color)
-    ) {
-        Text(text = text, color = color)
-    }
-}
-
-@Composable
 fun TextDivideLine() {
     Box(
         Modifier

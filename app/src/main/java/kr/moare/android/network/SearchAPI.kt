@@ -15,7 +15,7 @@ class SearchAPI {
     }
 
     suspend fun searchUsername(query: String): List<String> {
-        return KtorClient.httpClient.get(APIRoutes.username_search) {
+        return KtorClient.httpClient.get(APIRoutes.searchUser) {
             url {
                 parameters.append("username", query)
             }

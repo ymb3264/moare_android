@@ -16,31 +16,33 @@ import androidx.navigation.NavController
 import kr.moare.android.components.*
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.ui.theme.MoareTheme
-import kr.moare.android.utils.AddPostNavItem
+import kr.moare.android.utils.PostCreateNavItem
 import kr.moare.android.utils.SubCurrentBottomSheet
 import kr.moare.android.view.common.FindLocationView
 import kr.moare.android.view.common.GalleryView
 import kr.moare.android.view.common.SportAddView
-import kr.moare.android.viewmodel.post.PostAddViewModel
+import kr.moare.android.viewmodel.post.PostCreateViewModel
 import kr.moare.android.viewmodel.post.PostViewModel
 import kotlinx.coroutines.launch
+import kr.moare.android.viewmodel.common.GalleryViewModel
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun PostAddView(
+fun PostCreateView(
     bottomSheet: BottomSheet,
     mainNavController: NavController,
-    addPostNavController: NavController,
-    postAddVM: PostAddViewModel,
+    postCreateNavController: NavController,
+    postCreateVM: PostCreateViewModel,
     postVM: PostViewModel = hiltViewModel(),
+    galleryVM: GalleryViewModel = hiltViewModel()
 ) {
     val coroutineScope = rememberCoroutineScope()
 
     var content by remember { mutableStateOf("") }
-    val selectedMediaList by postAddVM.selectedMediaList.collectAsState()
+    val selectedMediaList by galleryVM.selectedMediaList.collectAsState()
 
-    val sport = postAddVM.post.sportHashtag
-    val place = postAddVM.post.place
+    val sport = postCreateVM.post.sportHashtag
+    val place = postCreateVM.post.place
     val completeBtnEnabled = sport.size > 0 && place.isNotEmpty() && content.isNotEmpty()
 
     BottomSheetScaffold(
@@ -74,15 +76,15 @@ fun PostAddView(
             when (bottomSheet.subSheet) {
                 SubCurrentBottomSheet.SearchSport -> SportAddView(
                     bottomSheet = bottomSheet,
-                    postAddVM = postAddVM,
+                    postAddVM = postCreateVM,
                     profileVM = null,
                 )
                 SubCurrentBottomSheet.FindLocation -> FindLocationView(
                     bottomSheet = bottomSheet,
-                    postAddVM = postAddVM,
+                    postAddVM = postCreateVM,
                     profileVM = null
                 )
-                SubCurrentBottomSheet.Gallery -> GalleryView(bottomSheet, postAddVM)
+                SubCurrentBottomSheet.Gallery -> GalleryView(bottomSheet, galleryVM)
                 SubCurrentBottomSheet.Empty -> EmptyView()
             }
         }
@@ -156,7 +158,7 @@ fun PostAddView(
 //                            "mediaUriList",
 //                            selectedMediaList.toTypedArray()
 //                        )
-                        addPostNavController.navigate(AddPostNavItem.ADDPOSTDETAIL.name)
+                        postCreateNavController.navigate(PostCreateNavItem.POSTCCREATEDETAIL.name)
                     }
                 }
             }
@@ -187,7 +189,7 @@ fun PostAddView(
                 expanded = content.isNotEmpty(),
                 onTextChange = {
                     content = it
-                    postAddVM.post.content = it
+                    postCreateVM.post.content = it
                 }
             )
 
@@ -195,7 +197,7 @@ fun PostAddView(
                 text = "게시",
                 enabled = completeBtnEnabled
             ) {
-                postAddVM.createPost(content)
+                postCreateVM.createPost(content, selectedMediaList)
             }
         }
     }

@@ -21,26 +21,22 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.ImageLoader
+import coil.compose.AsyncImage
 import coil.compose.rememberImagePainter
 import coil.decode.VideoFrameDecoder
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.entities.SelectedMedia
-import kr.moare.android.viewmodel.post.PostAddViewModel
+import kr.moare.android.viewmodel.common.GalleryViewModel
+import kr.moare.android.viewmodel.post.PostCreateViewModel
 
 @Composable
 fun GalleryView(
     bottomSheet: BottomSheet,
-    addPostVM: PostAddViewModel
+    galleryVM: GalleryViewModel,
+//    PostCreateVM: PostCreateViewModel
 ) {
-    val imageLoader = ImageLoader.Builder(LocalContext.current)
-        .components {
-            add(VideoFrameDecoder.Factory())
-        }
-        .build()
-
-    val attachments by addPostVM.attachments.collectAsState()
-    val selectedMediaList by addPostVM.selectedMediaList.collectAsState()
-//    val mediaUriList by postVM.mediaUriList.collectAsState()
+    val attachments by galleryVM.attachments.collectAsState()
+    val selectedMediaList by galleryVM.selectedMediaList.collectAsState()
 
     Scaffold(
         topBar = {
@@ -105,14 +101,14 @@ fun GalleryView(
                         .aspectRatio(1f),
                     contentAlignment = Alignment.TopEnd
                 ) {
-                    Image(
-                        painter = rememberImagePainter(data = attachment.uri, imageLoader = imageLoader),
+                    AsyncImage(
+                        model = attachment.uri,
                         contentDescription = "image",
                         modifier = Modifier
                             .fillMaxSize()
                             .clickable {
 //                                postVM.selectMediaItems(index, attachment.uri!!)
-                                addPostVM.selectMediaItems(index, attachment)
+                                galleryVM.selectMediaItems(index, attachment)
                             },
                         contentScale = ContentScale.Crop
                     )
@@ -141,7 +137,6 @@ fun GalleryView(
                         contentAlignment = Alignment.Center
                     ) {
                         if (attachment.isSelected) {
-//                            Text("${mediaUriList.indexOf(attachment.uri)+1}", color = Color.White)
                             Text("${selectedMediaList.indexOf(selectedMedia)+1}", color = Color.White)
                         }
                     }

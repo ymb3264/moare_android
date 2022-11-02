@@ -3,11 +3,13 @@ package kr.moare.android.network
 import kr.moare.android.entities.Post
 import kr.moare.android.utils.network.APIRoutes
 import kr.moare.android.utils.network.KtorClient
-import kr.moare.android.entities.TeamProfile
 import kr.moare.android.entities.UserProfile
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.http.*
+import io.ktor.util.*
+import java.io.File
 
 class ProfileAPI {
     suspend fun getMyProfile(token: String, username: String): UserProfile {
@@ -29,26 +31,49 @@ class ProfileAPI {
         }.body()
     }
 
-    // --------------
-    suspend fun getTeamProfile(username: String): TeamProfile {
-        return KtorClient.httpClient.get(APIRoutes.teamProfile) {
-            url {
-                parameters.append("username", username)
-            }
-        }.body()
-    }
-
-    suspend fun makeTeamProfile(teamProfile: TeamProfile): TeamProfile {
-        return KtorClient.httpClient.post(APIRoutes.teamProfile) {
-            setBody(teamProfile)
-        }.body()
-    }
-
     suspend fun getUserPosts(username: String): List<Post> {
         return KtorClient.httpClient.get(APIRoutes.post) {
             url {
                 parameters.append("username", username)
             }
+        }.body()
+    }
+
+    suspend fun createTeamProfile(token: String, teamProfile: UserProfile, profileImage: File?): UserProfile {
+        return KtorClient.httpClient.submitFormWithBinaryData(
+            url = APIRoutes.teamProfile,
+            formData = formData {
+                if (profileImage != null) {
+                    append("profileImage", profileImage.readBytes(), Headers.build {
+                        append(HttpHeaders.ContentType, "application/json")
+                        append(HttpHeaders.ContentDisposition, "filename=\"${profileImage.name}\"")
+                    })
+                }
+            }
+        ) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+            setBody(teamProfile)
+        }.body()
+    }
+
+    suspend fun updateProfile(token: String, profile: UserProfile, profileImage: File?): UserProfile {
+        return KtorClient.httpClient.submitFormWithBinaryData(
+           url = APIRoutes.profile,
+            formData = formData {
+                if (profileImage != null) {
+                    append("profileImage", profileImage.readBytes(), Headers.build {
+                        append(HttpHeaders.ContentType, "application/json")
+                        append(HttpHeaders.ContentDisposition, "filename=\"${profileImage.name}\"")
+                    })
+                }
+            }
+        ) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+            setBody(profile)
         }.body()
     }
 }

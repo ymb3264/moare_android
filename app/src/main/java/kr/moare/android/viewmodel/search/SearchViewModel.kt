@@ -19,6 +19,11 @@ class SearchViewModel @Inject constructor(
     var searchList = MutableStateFlow<List<String>>(mutableStateListOf())
 
     fun search(query: String) {
+        if (query.isEmpty()) {
+            searchList.value = listOf()
+            return
+        }
+
         viewModelScope.launch {
             kotlin.runCatching {
                 if (query.startsWith("#")) {

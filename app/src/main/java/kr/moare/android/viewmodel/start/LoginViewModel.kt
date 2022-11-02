@@ -48,8 +48,8 @@ class LoginViewModel @Inject constructor(
 
     private fun me(token: String) {
         viewModelScope.launch {
-//            loading.value = true
             kotlin.runCatching {
+                loading.value = true
                 api.me(token)
             }.onSuccess {
                 encryptedSharedPreferences.edit().putString("token", it.token).apply()

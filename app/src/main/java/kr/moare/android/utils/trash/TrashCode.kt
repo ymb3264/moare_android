@@ -1,5 +1,18 @@
 package kr.moare.android.utils.trash
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.Text
+import androidx.compose.material.TextButton
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kr.moare.android.utils.PostNavItem
+
 //enum class NAV_ROUTE(val routeName: String, val description: String) {
 //    START("START", "시작 화면"),
 //    LOGIN("LOGIN", "로그인 화면"),
@@ -378,3 +391,28 @@ package kr.moare.android.utils.trash
 //    uriType = contentResolver.getType(uri[0])
 //}
 //galleryLauncher.launch("*/*")
+
+//val username = teamProfile.username.substringBefore("-t")
+
+// username에 -t가 있는경우 검색시 나오는 리스트
+//if (it.endsWith("-t")) {
+//    TextButton(
+//        onClick = {
+//            postNavController.navigate(PostNavItem.TEAMPROFILE.name)
+//        },
+//        modifier = Modifier
+//            .fillMaxWidth(),
+//        colors = ButtonDefaults.textButtonColors(contentColor = Color.Black),
+//        contentPadding = PaddingValues(0.dp)
+//    ) {
+//        Text(text = it.substringBefore("-t"),
+//            modifier = Modifier.padding(start = 10.dp),
+//            fontSize = 18.sp
+//        )
+//        Text(text = "-t",
+//            modifier = Modifier.padding(start = 5.dp),
+//            color = Color.LightGray
+//        )
+//        Spacer(Modifier.weight(1f))
+//    }
+//}

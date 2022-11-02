@@ -27,7 +27,7 @@ import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
-class PostAddViewModel @Inject constructor(
+class PostCreateViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dataStore: DataStore<Preferences>,
     private val encryptedSharedPreferences: SharedPreferences
@@ -50,14 +50,10 @@ class PostAddViewModel @Inject constructor(
         preferences[Y] ?: ""
     }
 
-    var attachments = MutableStateFlow<List<Attachment>>(mutableStateListOf())
-    var selectedMediaList = MutableStateFlow<MutableList<SelectedMedia>>(mutableStateListOf())
-
     var post = Post(username, "", "", MediaUrl(listOf(), listOf()),
         "", mutableListOf(), "", "", "")
 
     init {
-        loadAttachments()
         viewModelScope.launch {
             placeFlow.collect() {
                 if (it != "") {
@@ -71,43 +67,14 @@ class PostAddViewModel @Inject constructor(
                 post.y = it
             }
         }
+        Log.d("postCreate", "postCreate")
     }
 
-    fun loadAttachments() {
-        val images = storageHelper.getMediaAttachments(context)
-        this.attachments.value = images
-        Log.d("filesss", images.toString())
-    }
-
-    fun selectMediaItems(index: Int, attachment: Attachment) {
-        val dataSet = attachments.value
-        val newFiles = dataSet.toMutableList()
-        val newItem: Attachment
-        val seletedMedia = SelectedMedia(attachment.uri!!, attachment.type!!)
-
-        if (selectedMediaList.value.indexOf(seletedMedia) == -1) {
-            selectedMediaList.value.add(seletedMedia)
-            newItem = dataSet[index].copy(
-                isSelected = !newFiles[index].isSelected
-            )
-        } else {
-            selectedMediaList.value.removeAt(selectedMediaList.value.indexOf(seletedMedia))
-            newItem = dataSet[index].copy(
-                isSelected = !newFiles[index].isSelected
-            )
-        }
-
-        newFiles.removeAt(index)
-        newFiles.add(index, newItem)
-
-        attachments.value = newFiles
-    }
-
-    fun createPost(content: String) {
+    fun createPost(content: String, selectedMediaList: MutableList<SelectedMedia>) {
         viewModelScope.launch {
             kotlin.runCatching {
                 val fileList = mutableListOf<File>()
-                selectedMediaList.value.forEach { media ->
+                selectedMediaList.forEach { media ->
                     if (media.type == "video") {
                         // 원본 비디오 보내기
                         val videoFile = UriUtil.toFile(context, media.uri)
@@ -125,7 +92,7 @@ class PostAddViewModel @Inject constructor(
                 Log.d("addFail", "message: $it")
             }
         }
-        selectedMediaList.value[0]?.let { video ->
+        selectedMediaList[0]?.let { video ->
             // check bitrate
 //            val mediaMetadataRetriever = MediaMetadataRetriever()
 //

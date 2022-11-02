@@ -78,11 +78,14 @@ fun PostView(
                             .weight(1f),
                             placeholder = "검색",
                             text = query, 
-                            onTextChange = { query = it },
-                            keyboardActions = KeyboardActions(onSearch = {
+                            onTextChange = {
+                                query = it
                                 searchVM.search(query)
-                                keyboardController?.hide()
-                            })
+                            },
+//                            keyboardActions = KeyboardActions(onSearch = {
+//                                searchVM.search(query)
+//                                keyboardController?.hide()
+//                            })
                         )
                         TextButton(
                             onClick = { postVM.showSearchView.value = false },
@@ -112,7 +115,7 @@ fun PostView(
                                     shape = RoundedCornerShape(5.dp)
                                 )
                                 .clickable {
-                                    mainNavController.navigate(MainNavItem.ADDPOST.name)
+                                    mainNavController.navigate(MainNavItem.POSTCREATE.name)
                                 },
                         )
                     }
@@ -215,44 +218,22 @@ fun PostView(
                                     Spacer(Modifier.weight(1f))
                                 }
                             } else {
-                                if (it.endsWith("-t")) {
-                                    TextButton(
-                                        onClick = {
-                                            postNavController.navigate(PostNavItem.TEAMPROFILE.name)
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxWidth(),
-                                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Black),
-                                        contentPadding = PaddingValues(0.dp)
-                                    ) {
-                                        Text(text = it.substringBefore("-t"),
-                                            modifier = Modifier.padding(start = 10.dp),
-                                            fontSize = 18.sp
-                                        )
-                                        Text(text = "-t",
-                                            modifier = Modifier.padding(start = 5.dp),
-                                            color = Color.LightGray
-                                        )
-                                        Spacer(Modifier.weight(1f))
-                                    }
-                                } else {
-                                    TextButton(
-                                        onClick = {
-                                            postNavController.navigate("${PostNavItem.USERPROFILE.name}/$it")
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxWidth(),
-                                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Black),
-                                        contentPadding = PaddingValues(0.dp)
-                                    ) {
-                                        Text(text = it,
-                                            modifier = Modifier.padding(start = 10.dp),
-                                            fontSize = 18.sp
-                                        )
-                                        Spacer(Modifier.weight(1f))
-                                    }
+                                TextButton(
+                                    onClick = {
+                                        postNavController.navigate("${PostNavItem.USERPROFILE.name}/$it")
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Black),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text(
+                                        text = it,
+                                        modifier = Modifier.padding(start = 10.dp),
+                                        fontSize = 18.sp
+                                    )
+                                    Spacer(Modifier.weight(1f))
                                 }
-
                             }
                         }
                     }

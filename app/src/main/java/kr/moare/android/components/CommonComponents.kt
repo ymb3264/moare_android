@@ -1,6 +1,7 @@
 package kr.moare.android.components
 
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -87,130 +88,29 @@ fun SearchTextField(modifier: Modifier, placeholder: String, text: String, onTex
 }
 
 @Composable
-fun RowScope.ProfileButton(
-    modifier: Modifier,
+fun ColumnScope.CompleteButton(
     text: String,
-    enabled: Boolean = true,
+    enabled: Boolean = false,
+    loading: Boolean = false,
     onClick: () -> Unit
 ) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            contentColor = MaterialTheme.colors.primary,
-            backgroundColor = Color.Transparent,
-            disabledBackgroundColor = Color.Transparent,
-            disabledContentColor = Color.Gray
-        ),
-        elevation = ButtonDefaults.elevation(
-            defaultElevation = 0.dp
-        ),
-        modifier = modifier
-            .weight(1f),
-        enabled = enabled,
-        contentPadding = PaddingValues(0.dp)
-    ) {
-        ProfileButtonLine(Modifier)
-        Spacer(Modifier.weight(1f))
-        Text(text = text)
-        Spacer(Modifier.weight(1f))
-        ProfileButtonLine(Modifier)
-    }
-}
+    val color = if (enabled) MaterialTheme.colors.primary else Color.Gray
 
-@Composable
-fun ProfileButtonLine(
-    modifier: Modifier,
-    enabled: Boolean = true
-) {
-    Box(
-        modifier = modifier
-            .clip(RectangleShape)
-            .size(width = 2.dp, height = 26.dp)
-            .background(
-                if (enabled) MaterialTheme.colors.primary
-                else Color.Gray
-            )
-    )
-}
-
-@Composable
-fun ProfileImageAddButton(
-    uri: Uri?,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            backgroundColor = Color.Transparent
-        ),
-        elevation = ButtonDefaults.elevation(
-            defaultElevation = 0.dp
-        ),
-        modifier = Modifier
-            .padding(bottom = 10.dp)
-    ) {
-        Box(modifier = Modifier
-            .clip(CircleShape)
-            .size(180.dp)
-            .border(
-                width = 1.dp,
-                color = if (uri != null) Color.Transparent else Color.Gray,
-                shape = CircleShape
+    if (loading) {
+        CircularProgressIndicator()
+    } else {
+        Button(onClick = onClick,
+            colors = ButtonDefaults.buttonColors(
+                backgroundColor = Color.Transparent,
+                disabledBackgroundColor = Color.Transparent
             ),
-            contentAlignment = Alignment.Center
+            elevation = ButtonDefaults.elevation(
+                defaultElevation = 0.dp
+            ),
+            border = BorderStroke(1.dp, color),
+            enabled = enabled
         ) {
-            Box(
-                modifier = Modifier
-                .clip(CircleShape)
-                .size(70.dp)
-                .border(
-                    width = 1.dp,
-                    color = Color.Gray,
-                    shape = CircleShape
-                )
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(modifier = Modifier
-                    .clip(RectangleShape)
-                    .height(2.dp)
-                    .width(54.dp)
-                    .background(Color.Transparent))
-                Box(modifier = Modifier
-                    .clip(RectangleShape)
-                    .height(70.dp)
-                    .width(36.dp)
-                    .background(Color.White))
-                Box(modifier = Modifier
-                    .clip(RectangleShape)
-                    .height(70.dp)
-                    .width(35.dp)
-                    .background(Color.Transparent))
-                Box(modifier = Modifier
-                    .clip(RectangleShape)
-                    .height(2.dp)
-                    .width(55.dp)
-                    .background(Color.Gray))
-            }
-
-            Text(text = "사진 추가", color = Color.Gray, fontSize = 13.sp)
-
-            if (uri != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.White),
-                    contentAlignment = Alignment.BottomStart
-                ) {
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = "image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-            }
+            Text(text = text, color = color)
         }
     }
 }

@@ -26,7 +26,7 @@ import kr.moare.android.components.SearchBar
 import kr.moare.android.components.SelectedSportHashtag
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.viewmodel.common.SportSelectViewModel
-import kr.moare.android.viewmodel.post.PostAddViewModel
+import kr.moare.android.viewmodel.post.PostCreateViewModel
 import kr.moare.android.viewmodel.search.SearchViewModel
 import kr.moare.android.viewmodel.profile.ProfileViewModel
 
@@ -34,12 +34,14 @@ import kr.moare.android.viewmodel.profile.ProfileViewModel
 @Composable
 fun SportAddView(
     bottomSheet: BottomSheet,
-    postAddVM: PostAddViewModel?,
+    postAddVM: PostCreateViewModel?,
     profileVM: ProfileViewModel?,
     sportSelectVM: SportSelectViewModel = hiltViewModel(),
     searchVM: SearchViewModel = hiltViewModel(),
 ) {
     var query by remember { mutableStateOf("") }
+
+    val loading by sportSelectVM.loading.collectAsState()
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -124,130 +126,140 @@ fun SportAddView(
                 }
             }
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier
-                    .padding(horizontal = 12.dp)
-                    .weight(0.7f)
-            ) {
-                if (query == "") {
-                    items(sportList.keys.toList()) { sport ->
-                        Button(
-                            onClick = {
-                                sportSelectVM.selectSport(sport)
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = Color.White
-                            ),
-                            elevation = ButtonDefaults.elevation(
-                                defaultElevation = 0.dp
-                            ),
-                            shape = RectangleShape,
-                            contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier
-                                .padding(
-                                    start = 7.dp,
-                                    end = 7.dp,
-                                    bottom = 20.dp
-                                )
-                                .height(50.dp)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
+            if (loading) {
+                CircularProgressIndicator()
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                        .weight(0.7f)
+                ) {
+                    if (query == "") {
+                        items(sportList.keys.toList()) { sport ->
+                            Button(
+                                onClick = {
+                                    sportSelectVM.selectSport(sport)
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color.White
+                                ),
+                                elevation = ButtonDefaults.elevation(
+                                    defaultElevation = 0.dp
+                                ),
+                                shape = RectangleShape,
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier
+                                    .padding(
+                                        start = 7.dp,
+                                        end = 7.dp,
+                                        bottom = 20.dp
+                                    )
+                                    .height(50.dp)
                             ) {
-                                if (sportList[sport] == true) {
-                                    Box(
-                                        modifier = Modifier
-                                            .border(
-                                                BorderStroke(1.dp, MaterialTheme.colors.primary),
-                                                RoundedCornerShape(15.dp)
-                                            )
-                                            .fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(text = sport, color = MaterialTheme.colors.primary)
-                                    }
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(text = sport)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    if (sportList[sport] == true) {
                                         Box(
                                             modifier = Modifier
-                                                .align(Alignment.BottomStart)
-                                                .padding(top = 10.dp)
-                                                .clip(RectangleShape)
-                                                .fillMaxWidth()
-                                                .height(2.dp)
-                                                .background(Color.Gray)
-                                        )
+                                                .border(
+                                                    BorderStroke(
+                                                        1.dp,
+                                                        MaterialTheme.colors.primary
+                                                    ),
+                                                    RoundedCornerShape(15.dp)
+                                                )
+                                                .fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(text = sport, color = MaterialTheme.colors.primary)
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(text = sport)
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomStart)
+                                                    .padding(top = 10.dp)
+                                                    .clip(RectangleShape)
+                                                    .fillMaxWidth()
+                                                    .height(2.dp)
+                                                    .background(Color.Gray)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                } else {
-                    items(newSportList.keys.toList()) { sport ->
-                        Button(
-                            onClick = {
-                                sportSelectVM.newSelectSport(sport)
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = Color.White
-                            ),
-                            elevation = ButtonDefaults.elevation(
-                                defaultElevation = 0.dp
-                            ),
-                            shape = RectangleShape,
-                            contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier
-                                .padding(
-                                    start = 7.dp,
-                                    end = 7.dp,
-                                    bottom = 20.dp
-                                )
-                                .height(50.dp)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
+                    } else {
+                        items(newSportList.keys.toList()) { sport ->
+                            Button(
+                                onClick = {
+                                    sportSelectVM.newSelectSport(sport)
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color.White
+                                ),
+                                elevation = ButtonDefaults.elevation(
+                                    defaultElevation = 0.dp
+                                ),
+                                shape = RectangleShape,
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier
+                                    .padding(
+                                        start = 7.dp,
+                                        end = 7.dp,
+                                        bottom = 20.dp
+                                    )
+                                    .height(50.dp)
                             ) {
-                                if (sportList[sport] == true) {
-                                    Box(
-                                        modifier = Modifier
-                                            .border(
-                                                BorderStroke(1.dp, MaterialTheme.colors.primary),
-                                                RoundedCornerShape(15.dp)
-                                            )
-                                            .fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(text = sport, color = MaterialTheme.colors.primary)
-                                    }
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(text = sport)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    if (sportList[sport] == true) {
                                         Box(
                                             modifier = Modifier
-                                                .align(Alignment.BottomStart)
-                                                .padding(top = 10.dp)
-                                                .clip(RectangleShape)
-                                                .fillMaxWidth()
-                                                .height(2.dp)
-                                                .background(Color.Gray)
-                                        )
+                                                .border(
+                                                    BorderStroke(
+                                                        1.dp,
+                                                        MaterialTheme.colors.primary
+                                                    ),
+                                                    RoundedCornerShape(15.dp)
+                                                )
+                                                .fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(text = sport, color = MaterialTheme.colors.primary)
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(text = sport)
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomStart)
+                                                    .padding(top = 10.dp)
+                                                    .clip(RectangleShape)
+                                                    .fillMaxWidth()
+                                                    .height(2.dp)
+                                                    .background(Color.Gray)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                }
-            }
+                    } // query = ""
+                } // LazyVerticalGrid
+            } // loading
 
 //            LazyColumn(
 //                modifier = Modifier.fillMaxSize(),

@@ -28,18 +28,20 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import kr.moare.android.R
 import kr.moare.android.ui.theme.MoareTheme
-import kr.moare.android.viewmodel.post.PostAddViewModel
+import kr.moare.android.viewmodel.post.PostCreateViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.HorizontalPagerIndicator
 import com.google.accompanist.pager.rememberPagerState
 import kr.moare.android.utils.innerShadow
+import kr.moare.android.viewmodel.common.GalleryViewModel
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
-fun PostAddDetailView(
+fun PostCreateDetailView(
     navController: NavController,
-    postAddVM: PostAddViewModel,
+    postCreateVM: PostCreateViewModel,
+    galleryVM: GalleryViewModel = hiltViewModel()
 //    selectedMediaList: Array<SelectedMedia>,
 //    content: String,
 //    username: String,
@@ -52,9 +54,9 @@ fun PostAddDetailView(
     var moreContent by remember { mutableStateOf(false) }
     var contentHeight by remember { mutableStateOf(0.dp) }
 
-    val selectedMediaList by postAddVM.selectedMediaList.collectAsState()
+    val selectedMediaList by galleryVM.selectedMediaList.collectAsState()
 
-    val placeArr = postAddVM.post.place.split(" ")
+    val placeArr = postCreateVM.post.place.split(" ")
     val placeName =  placeArr[placeArr.lastIndex-1]
 
     val contentResolver = LocalContext.current.contentResolver
@@ -106,7 +108,7 @@ fun PostAddDetailView(
                         .size(40.dp)
                         .background(MaterialTheme.colors.primary)
                 )
-                Text(text = postAddVM.username, color = Color.White, modifier = Modifier.padding(start = 10.dp))
+                Text(text = postCreateVM.username, color = Color.White, modifier = Modifier.padding(start = 10.dp))
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -147,7 +149,7 @@ fun PostAddDetailView(
             ) {
                 Spacer(Modifier.weight(0.5f))
                 Text(
-                    text = postAddVM.post.sportHashtag.joinToString(" "),
+                    text = postCreateVM.post.sportHashtag.joinToString(" "),
                     style = MaterialTheme.typography.body2,
                     color = MaterialTheme.colors.primary,
                     maxLines = 1,
@@ -168,7 +170,7 @@ fun PostAddDetailView(
                         .clickable { moreContent = !moreContent }
                 ) {
                     Text(
-                        text = postAddVM.post.content,
+                        text = postCreateVM.post.content,
                         style = MaterialTheme.typography.body2,
                         color = Color.White,
                         maxLines = if (moreContent) Int.MAX_VALUE else 1,
@@ -215,6 +217,6 @@ fun PostAddDetailView(
 @Composable
 fun PostAddDetailViewPreview() {
     MoareTheme {
-        PostAddDetailView(navController = rememberNavController(), postAddVM = hiltViewModel())
+        PostCreateDetailView(navController = rememberNavController(), postCreateVM = hiltViewModel())
     }
 }

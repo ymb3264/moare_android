@@ -23,27 +23,22 @@ import coil.compose.AsyncImage
 import coil.decode.VideoFrameDecoder
 import com.canhub.cropper.*
 import kr.moare.android.entities.BottomSheet
+import kr.moare.android.viewmodel.common.GalleryViewModel
 import kr.moare.android.viewmodel.profile.ProfileViewModel
 
 @Composable
 fun ProfileGalleryView(
     bottomSheet: BottomSheet,
-    profileVM: ProfileViewModel
+//    profileVM: ProfileViewModel
+    galleryVM: GalleryViewModel
 ) {
-    val imageLoader = ImageLoader.Builder(LocalContext.current)
-        .components {
-            add(VideoFrameDecoder.Factory())
-        }
-        .build()
-
-    val attachments by profileVM.attachments.collectAsState()
-    val selectedImage by profileVM.selectedImage.collectAsState()
-//    val mediaUriList by postVM.mediaUriList.collectAsState()
+    val attachments by galleryVM.attachments.collectAsState()
+    val selectedImage by galleryVM.selectedImage.collectAsState()
 
     val imageCropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
             bottomSheet.subCloseSheet()
-            profileVM.croppedImage.value = result.uriContent?.let { it }
+            galleryVM.croppedImage.value = result.uriContent?.let { it }
         }
     }
 
@@ -113,7 +108,7 @@ fun ProfileGalleryView(
                         modifier = Modifier
                             .fillMaxSize()
                             .clickable {
-                                profileVM.selectProfileImage(attachment) {
+                                galleryVM.selectProfileImage(attachment) {
 //                                    imagePickerLauncher.launch("image/*")
                                     val cropOptions = CropImageOptions()
                                     cropOptions.allowRotation = false
