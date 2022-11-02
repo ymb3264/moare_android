@@ -115,11 +115,11 @@ fun UpdateProfileView(
 //                    .padding(bottom = 10.dp),
                 placeholder = "소개",
                 text = content,
-                required = false,
                 onTextChange = {
                     content = it
                     profileVM.newUserProfile.value.content = it
-                }
+                },
+                required = false
             )
 
             CustomPlainTextField1(
@@ -146,10 +146,14 @@ fun UpdateProfileView(
                     name = it
                     profileVM.newUserProfile.value.name = it
                 },
-                expanded = name.isNotEmpty()
+                required = false,
             )
 
-            CompleteButton(text = "완료", loading = updateLoading) {
+            CompleteButton(
+                text = "완료",
+                enabled = true,
+                loading = updateLoading
+            ) {
                 profileVM.updateProfile(croppedImage) {
                     bottomSheet.mainCloseSheet()
                 }

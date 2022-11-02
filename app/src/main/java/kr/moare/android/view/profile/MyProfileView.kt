@@ -44,7 +44,21 @@ fun MyProfileView(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = profile.username) },
+                title = {
+                    TextButton(
+                        onClick = {
+                            profileVM.getMyAccounts()
+                            bottomSheet.mainOpenSheet(MainCurrentBottomSheet.MyAccounts)
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
+                    ) {
+                        Text(text = profile.username)
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_arrow_down),
+                            contentDescription = "myAccounts"
+                        )
+                    }
+                },
                 backgroundColor = Color.White,
                 elevation = 0.dp,
                 actions = {

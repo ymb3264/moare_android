@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kr.moare.android.utils.UriUtil
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,6 +35,7 @@ class ProfileViewModel @Inject constructor(
     private val encryptedSharedPreferences: SharedPreferences
 ) : ViewModel() {
     val api = ProfileAPI()
+    val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.KOREA)
 
     val token = encryptedSharedPreferences.getString("token", "") ?: ""
     val username = encryptedSharedPreferences.getString("username", "") ?: ""
@@ -43,20 +46,23 @@ class ProfileViewModel @Inject constructor(
     }
 
     var profile = MutableStateFlow<UserProfile>(
-        UserProfile("", listOf(), "", "", "",
+        UserProfile("", "", listOf(), "", "", "",
             "", false, listOf(), listOf(), listOf())
     )
 
-    var newTeamProfile = UserProfile("", listOf(), "", "", "",
+    var newTeamProfile = UserProfile(now.toString(), "", listOf(), "", "", "",
         "", true, listOf(), listOf(), listOf())
-    var newUserProfile = MutableStateFlow<UserProfile>(
-        UserProfile("", listOf(), "", "", "",
-            "", false, listOf(), listOf(), listOf())
+    var newUserProfile = MutableStateFlow<UpdateProfile>(
+        UpdateProfile("", "", listOf(), "", "", "",
+            "")
     )
+
+    var myAccounts: List<UserProfile> = listOf()
 
     var postList = MutableStateFlow<MutableList<List<Post>>>(mutableStateListOf())
     val isRefreshing = MutableStateFlow(false)
     val updateLoading = MutableStateFlow(false)
+    val myAccountsLoading = MutableStateFlow(false)
     var allPost = mutableListOf<Post>()
     var num = 0
 
@@ -82,13 +88,13 @@ class ProfileViewModel @Inject constructor(
             }.onSuccess {
                 // 다른 변수에 it을 담아도 공유가된다?!?!?!?!?
                 profile.value = it
+                newUserProfile.value.createdAt = it.createdAt
                 newUserProfile.value.username = it.username
                 newUserProfile.value.sport = it.sport
                 newUserProfile.value.name = it.name
-                newUserProfile.value.name = it.profileImage
+                newUserProfile.value.profileImage = it.profileImage
                 newUserProfile.value.content = it.content
                 newUserProfile.value.place = it.place
-                newUserProfile.value.isTeam = it.isTeam
                 Log.d("success", "$it")
             }.onFailure {
                 Log.d("FAIL", "message: $it")
@@ -161,6 +167,31 @@ class ProfileViewModel @Inject constructor(
                 closeSheet()
                 updateLoading.value = false
                 Log.d("FAIL", "message: $it")
+            }
+        }
+    }
+
+    fun getMyAccounts() {
+        viewModelScope.launch {
+            kotlin.runCatching {
+                myAccountsLoading.value = true
+                api.getMyAccounts(token)
+            }.onSuccess {
+                myAccounts = it
+                myAccountsLoading.value = false
+                Log.d("myAccounts", "$it")
+            }.onFailure {
+                myAccountsLoading.value = false
+                Log.d("FAIL", "message: $it")
+            }
+        }
+    }
+
+    fun changeProfile(username: String) {
+        myAccounts.forEach {
+            if (it.username == username) {
+                profile.value = it
+                return
             }
         }
     }

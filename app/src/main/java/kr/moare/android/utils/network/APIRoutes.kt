@@ -22,6 +22,7 @@ object APIRoutes {
     const val profile = "$host/profile"
     const val userProfile = "$profile/user"
     const val teamProfile = "$profile/team"
+    const val myAccounts = "$profile/accounts"
 
     // follow
     const val follow = "$host/follow"

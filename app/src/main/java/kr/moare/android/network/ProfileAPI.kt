@@ -9,6 +9,7 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import io.ktor.util.*
+import kr.moare.android.entities.UpdateProfile
 import java.io.File
 
 class ProfileAPI {
@@ -58,7 +59,7 @@ class ProfileAPI {
         }.body()
     }
 
-    suspend fun updateProfile(token: String, profile: UserProfile, profileImage: File?): UserProfile {
+    suspend fun updateProfile(token: String, profile: UpdateProfile, profileImage: File?): UserProfile {
         return KtorClient.httpClient.submitFormWithBinaryData(
            url = APIRoutes.profile,
             formData = formData {
@@ -74,6 +75,14 @@ class ProfileAPI {
                 append(HttpHeaders.Authorization, "Bearer $token")
             }
             setBody(profile)
+        }.body()
+    }
+
+    suspend fun getMyAccounts(token: String): List<UserProfile> {
+        return KtorClient.httpClient.get(APIRoutes.myAccounts) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
         }.body()
     }
 }

@@ -240,7 +240,7 @@ fun PostNavGraph(
         ) {
             val page = it.arguments?.getInt("page") ?: 0
             val profile = postNavController.previousBackStackEntry?.savedStateHandle?.get<UserProfile>("profile") ?:
-                UserProfile("", listOf(), "", "", "",
+                UserProfile("", "", listOf(), "", "", "",
                 "", false, listOf(), listOf(), listOf())
             FollowListView(
                 navController = postNavController,
@@ -381,7 +381,7 @@ fun MyProfileNavGraph(
         ) {
             val page = it.arguments?.getInt("page") ?: 0
             val profile = myProfileNavController.previousBackStackEntry?.savedStateHandle?.get<UserProfile>("profile") ?:
-            UserProfile("", listOf(), "", "", "",
+            UserProfile("", "", listOf(), "", "", "",
                 "", false, listOf(), listOf(), listOf())
             FollowListView(
                 navController = myProfileNavController,

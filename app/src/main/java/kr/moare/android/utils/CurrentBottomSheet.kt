@@ -7,6 +7,7 @@ sealed class MainCurrentBottomSheet() {
     object CreateTeamProfile: MainCurrentBottomSheet()
     object UpdateProfile: MainCurrentBottomSheet()
     object UpdateTeamProfile: MainCurrentBottomSheet()
+    object MyAccounts: MainCurrentBottomSheet()
 }
 
 sealed class SubCurrentBottomSheet() {

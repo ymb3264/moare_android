@@ -30,7 +30,7 @@ class UserProfileViewModel @Inject constructor(
     private val username: String = savedStateHandle["username"] ?: ""
 
     var profile = MutableStateFlow<UserProfile>(
-        UserProfile("", listOf(), "", "", "",
+        UserProfile("", "", listOf(), "", "", "",
             "", false, listOf(), listOf(), listOf())
     )
 

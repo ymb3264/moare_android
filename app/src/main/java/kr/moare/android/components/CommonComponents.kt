@@ -119,7 +119,9 @@ fun ColumnScope.CompleteButton(
 fun EmptyView() {
     Box(
         Modifier
-            .fillMaxSize()
+//            .fillMaxSize()
+            .fillMaxWidth()
+            .height(1.dp)
             .background(Color.Transparent))
 }
 

@@ -12,6 +12,7 @@ import kotlinx.serialization.Transient
 @Serializable
 @Parcelize
 data class UserProfile(
+    var createdAt: String,
     var username: String,
     var sport: List<String>,
     var name: String,
@@ -25,3 +26,14 @@ data class UserProfile(
     @Transient
     var coilImage: @RawValue ImageRequest? = null
 ) : Parcelable
+
+@Serializable
+data class UpdateProfile(
+    var createdAt: String,
+    var username: String,
+    var sport: List<String>,
+    var name: String,
+    var profileImage: String,
+    var content: String,
+    var place: String,
+)
