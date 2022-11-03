@@ -9,6 +9,8 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import io.ktor.util.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kr.moare.android.entities.UpdateProfile
 import java.io.File
 
@@ -41,9 +43,13 @@ class ProfileAPI {
     }
 
     suspend fun createTeamProfile(token: String, teamProfile: UserProfile, profileImage: File?): UserProfile {
+        val jsonTeamProfile = Json.encodeToString(teamProfile)
+
         return KtorClient.httpClient.submitFormWithBinaryData(
             url = APIRoutes.teamProfile,
             formData = formData {
+                append("profile", jsonTeamProfile)
+
                 if (profileImage != null) {
                     append("profileImage", profileImage.readBytes(), Headers.build {
                         append(HttpHeaders.ContentType, "application/json")
@@ -55,14 +61,17 @@ class ProfileAPI {
             headers {
                 append(HttpHeaders.Authorization, "Bearer $token")
             }
-            setBody(teamProfile)
         }.body()
     }
 
     suspend fun updateProfile(token: String, profile: UpdateProfile, profileImage: File?): UserProfile {
+        val jsonProfile = Json.encodeToString(profile)
+
         return KtorClient.httpClient.submitFormWithBinaryData(
            url = APIRoutes.profile,
             formData = formData {
+                append("profile", jsonProfile)
+
                 if (profileImage != null) {
                     append("profileImage", profileImage.readBytes(), Headers.build {
                         append(HttpHeaders.ContentType, "application/json")
@@ -74,7 +83,6 @@ class ProfileAPI {
             headers {
                 append(HttpHeaders.Authorization, "Bearer $token")
             }
-            setBody(profile)
         }.body()
     }
 

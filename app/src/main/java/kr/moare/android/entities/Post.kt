@@ -17,7 +17,7 @@ data class Post(
     val yearAndMonth: String,
     var mediaUrl: MediaUrl,
     var content: String,
-    var sportHashtag: MutableList<String>,
+    var sportHashtag: List<String>,
     var place: String,
     var x: String,
     var y: String,

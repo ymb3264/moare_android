@@ -2,6 +2,7 @@ package kr.moare.android.view.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -141,7 +142,7 @@ fun MyProfileView(
             }
 
             Text(
-                text = profile.sport.joinToString(" "),
+                text = profile.sportHashtag.joinToString(" "),
                 modifier = Modifier
                     .padding(start = 20.dp, end = 10.dp, bottom = 10.dp),
                 color = MaterialTheme.colors.primary
@@ -225,9 +226,29 @@ fun MyProfileView(
                     .padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ProfileButton(modifier = Modifier, text = "팀 프로필 생성") { bottomSheet.mainOpenSheet(MainCurrentBottomSheet.CreateTeamProfile) }
+                ProfileButton(
+                    modifier = Modifier,
+                    text = if (profile.isTeam) "프로필 편집" else "팀 프로필 생성"
+                ) {
+                    if (profile.isTeam) {
+                        bottomSheet.mainOpenSheet(MainCurrentBottomSheet.UpdateProfile)
+                    } else {
+                        bottomSheet.mainOpenSheet(MainCurrentBottomSheet.CreateTeamProfile)
+                    }
+                }
+
                 Spacer(Modifier.weight(0.1f))
-                ProfileButton(modifier = Modifier, text = "프로필 편집") { bottomSheet.mainOpenSheet(MainCurrentBottomSheet.UpdateProfile) }
+
+                ProfileButton(
+                    modifier = Modifier,
+                    text = if (profile.isTeam) "메세지" else "프로필 편집"
+                ) {
+                    if (profile.isTeam) {
+                        mainNavController.navigate(MainNavItem.MESSAGELIST.name)
+                    } else {
+                        bottomSheet.mainOpenSheet(MainCurrentBottomSheet.UpdateProfile)
+                    }
+                }
             }
 
             ProfileDivideLine()
@@ -250,6 +271,18 @@ fun MyProfileView(
                 ProfilePostListView(postList, myProfileNavController)
             }
         }
+
+    } // Scaffold
+
+    if (bottomSheet.mainSheet == MainCurrentBottomSheet.MyAccounts) {
+        Box(Modifier
+            .fillMaxSize()
+            .background(Color.Gray.copy(0.5f))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { bottomSheet.mainCloseSheet() }
+        )
     }
 }
 

@@ -19,13 +19,15 @@ import kr.moare.android.view.common.ProfileGalleryView
 import kr.moare.android.view.common.SportAddView
 import kr.moare.android.viewmodel.common.GalleryViewModel
 import kr.moare.android.viewmodel.profile.ProfileViewModel
+import kr.moare.android.viewmodel.start.JoinViewModel
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun UpdateProfileView(
     bottomSheet: BottomSheet,
     profileVM: ProfileViewModel,
-    galleryVM: GalleryViewModel = hiltViewModel()
+    galleryVM: GalleryViewModel = hiltViewModel(),
+    joinVM: JoinViewModel = hiltViewModel()
 ) {
     var username by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
@@ -35,6 +37,13 @@ fun UpdateProfileView(
     val updateLoading by profileVM.updateLoading.collectAsState()
 
     val croppedImage by galleryVM.croppedImage.collectAsState()
+
+    val showErrorText by joinVM.showErrorText.collectAsState()
+    val showErrorText2 by joinVM.showErrorText2.collectAsState()
+    val usernameBtn by joinVM.usernameBtn.collectAsState()
+
+    val errorText1 = "이미 사용중인 이름입니다"
+    val errorText2 = "사용자 이름에는 영어 대/소문자, 숫자,\n밑줄(_) 및 마침표(.)만 사용할 수 있습니다."
 
     username = profile.username
     name = profile.name
@@ -63,15 +72,17 @@ fun UpdateProfileView(
         sheetContent = {
             when (bottomSheet.subSheet) {
                 SubCurrentBottomSheet.SearchSport -> SportAddView(
-                    bottomSheet = bottomSheet,
-                    postAddVM = null,
-                    profileVM = profileVM
-                )
+                    bottomSheet = bottomSheet
+                ) { sport ->
+                    profileVM.newUserProfile.value.sportHashtag = sport
+                }
                 SubCurrentBottomSheet.FindLocation -> FindLocationView(
                     bottomSheet = bottomSheet,
-                    postAddVM = null,
+                    postCreateVM = null,
                     profileVM = profileVM
-                )
+                ) { place ->
+                    profileVM.newUserProfile.value.place = place
+                }
                 SubCurrentBottomSheet.Gallery -> ProfileGalleryView(
                     bottomSheet = bottomSheet,
                     galleryVM = galleryVM
@@ -94,7 +105,7 @@ fun UpdateProfileView(
             }
 
             SearchViewButton(
-                sport = profile.sport,
+                sport = profile.sportHashtag,
                 place = null,
                 required = false
             ) {
@@ -111,8 +122,6 @@ fun UpdateProfileView(
 
             CustomPlainTextField2(
                 modifier = Modifier,
-//                    .padding(horizontal = 10.dp)
-//                    .padding(bottom = 10.dp),
                 placeholder = "소개",
                 text = content,
                 onTextChange = {
@@ -122,24 +131,35 @@ fun UpdateProfileView(
                 required = false
             )
 
+            if (showErrorText || showErrorText2) {
+                Text(text = if (showErrorText) errorText2 else errorText1,
+                    color = Color.Red,
+                    style = MaterialTheme.typography.caption,
+                    modifier = Modifier.padding(bottom = 10.dp))
+            }
+
             CustomPlainTextField1(
                 modifier = Modifier
                     .padding(vertical = 6.dp),
-//                    .padding(horizontal = 10.dp)
-//                    .padding(bottom = 10.dp),
                 placeholder = "사용자 이름",
                 text = username,
                 onTextChange = {
                     username = it
+                    // stateflow 변수의 참조형 속성은 값을 바꿔도 composable view에 적용되지 않는다. 선언형은 적용된다.
                     profileVM.newUserProfile.value.username = it
+                    joinVM.checkUsername(username)
+                    if (profileVM.username != username) {
+                        joinVM.checkUsername2(username)
+                    } else {
+                        // 이름이 있는경우에서 바로 원래이름으로 바꿨을때 errortext2가 사라져야한다
+                        joinVM.showErrorText2.value = false
+                    }
                 },
-                expanded = profile.username.isNotEmpty()
+                expanded = usernameBtn
             )
             CustomPlainTextField1(
                 modifier = Modifier
                     .padding(vertical = 6.dp),
-//                    .padding(horizontal = 10.dp)
-//                    .padding(bottom = 10.dp),
                 placeholder = "이름",
                 text = name,
                 onTextChange = {
@@ -151,7 +171,7 @@ fun UpdateProfileView(
 
             CompleteButton(
                 text = "완료",
-                enabled = true,
+                enabled = usernameBtn,
                 loading = updateLoading
             ) {
                 profileVM.updateProfile(croppedImage) {

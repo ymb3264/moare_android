@@ -53,8 +53,7 @@ fun UsernameView(navController: NavController, joinVM: JoinViewModel) {
                 Text(text = if (showErrorText) errorText2 else errorText1,
                     color = Color.Red,
                     style = MaterialTheme.typography.caption,
-                    modifier = Modifier.padding(bottom = 10.dp)
-                )
+                    modifier = Modifier.padding(bottom = 10.dp))
             }
 
             StartViewTextField(
@@ -62,18 +61,7 @@ fun UsernameView(navController: NavController, joinVM: JoinViewModel) {
                 text = username,
                 onTextChange = { joinVM.checkUsername(it) }
             )
-//            StartViewButton(
-//                text = "다음",
-//                onClick = {
-//                    joinVM.checkUsername(username) {
-//                        if (it) {
-//                            navController.navigate(StartNavItem.SportSelect.name)
-//                        }
-//                    }
-//                },
-//                enabled = username.isNotEmpty(),
-//                width = screenWidth
-//            )
+
             CircleStartViewButton(usernameBtn) {
                 joinVM.checkUsername2(username) {
                     if (it) {

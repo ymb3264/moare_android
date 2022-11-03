@@ -104,7 +104,7 @@ fun UserProfileView(
             }
 
             Text(
-                text = profile.sport.joinToString(" "),
+                text = profile.sportHashtag.joinToString(" "),
                 modifier = Modifier
                     .padding(start = 20.dp, end = 10.dp, bottom = 20.dp),
                 color = MaterialTheme.colors.primary

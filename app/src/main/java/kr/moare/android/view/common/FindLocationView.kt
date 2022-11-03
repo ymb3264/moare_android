@@ -1,5 +1,6 @@
 package kr.moare.android.view.common
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
@@ -29,17 +31,20 @@ import kotlinx.coroutines.launch
 @Composable
 fun FindLocationView(
     bottomSheet: BottomSheet,
-    postAddVM: PostCreateViewModel?,
+    postCreateVM: PostCreateViewModel?,
     profileVM: ProfileViewModel?,
-    locationVM: LocationViewModel = hiltViewModel()
+    locationVM: LocationViewModel = hiltViewModel(),
+    addPlaceToProfile: (String) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
 
     val keyboardController = LocalSoftwareKeyboardController.current
-    var checkPermission by remember { mutableStateOf(true) }
+    var checkPermission by remember { mutableStateOf(false) }
 
     val addressList by locationVM.addressList.collectAsState()
     val showAlert by locationVM.showAlert.collectAsState()
+    val loading by locationVM.loading.collectAsState()
+    val noResult by locationVM.noResult.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -59,7 +64,7 @@ fun FindLocationView(
                 actions = {
                     Button(
                         onClick = {
-                            if (profileVM != null || postAddVM != null) {
+                            if (profileVM != null || postCreateVM != null) {
                                 bottomSheet.subCloseSheet()
                             } else {
                                 bottomSheet.mainCloseSheet()
@@ -92,7 +97,13 @@ fun FindLocationView(
                     .weight(1f),
                     placeholder = "지역",
                     text = query,
-                    onTextChange = { query = it },
+                    onTextChange = {
+                        query = it
+                        if (query.isEmpty()) {
+                            locationVM.addressList.value = mutableListOf()
+                            locationVM.noResult.value = ""
+                        }
+                    },
                     keyboardActions = KeyboardActions(onSearch = {
                         locationVM.searchAddress(query)
                         keyboardController?.hide()
@@ -116,6 +127,7 @@ fun FindLocationView(
             if (addressList.isEmpty()) {
                 Button(
                     onClick = {
+                        checkPermission = true
                         if (locationPermissionsState.allPermissionsGranted) {
                             locationVM.startLocationUpdates()
                         } else {
@@ -131,6 +143,10 @@ fun FindLocationView(
                 ) {
                     Text(text = "현재 위치로 설정")
                 }
+
+                if (noResult.isNotEmpty()) {
+                    Text(text = noResult)
+                }
             }
             
             LazyColumn(
@@ -140,16 +156,18 @@ fun FindLocationView(
                 items(addressList) {
                     TextButton(
                         onClick = {
-                            if (postAddVM != null) {
-//                                postAddVM.postPlace.value = it.address
-                                postAddVM.post.place = it.address
-                                postAddVM.post.x = it.x
-                                postAddVM.post.y = it.y
+                            if (postCreateVM != null) {
+                                postCreateVM.post.place = it.address
+                                postCreateVM.post.x = it.x
+                                postCreateVM.post.y = it.y
+
+                                locationVM.addressList.value = mutableListOf()
                                 bottomSheet.subCloseSheet()
                             } else if (profileVM != null) {
-                                profileVM.newTeamProfile.place = it.address
-                                bottomSheet.subCloseSheet()
+                                addPlaceToProfile(it.address)
 
+                                locationVM.addressList.value = mutableListOf()
+                                bottomSheet.subCloseSheet()
                             } else {
                                 locationVM.showAlert(true, addressItem = it)
                             }
@@ -174,11 +192,12 @@ fun FindLocationView(
                                     modifier = Modifier.padding(top = 5.dp)
                                 )
                             }
-                        }
-                    }
-                }
-            }
+                        } // Column
+                    } // TextButton
+                } // items
+            } // LazyColumn
 
+            // 위치접근권한이 설정되어있지 않았을때 권한 요청을 묻고 권한 허용시 실행된다
             if (locationPermissionsState.allPermissionsGranted && checkPermission) {
                 locationVM.startLocationUpdates()
             }
@@ -188,28 +207,48 @@ fun FindLocationView(
                     onDismissRequest = { locationVM.showAlert(false, null) },
                     confirmButton = {
                         TextButton(onClick = {
-                            coroutineScope.launch {
-                                locationVM.addLocation()
-                                checkPermission = false
-                                bottomSheet.mainCloseSheet()
+                            checkPermission = false
+                            locationVM.addressList.value = mutableListOf()
+
+                            if (postCreateVM != null) {
+                                postCreateVM.post.place = locationVM.addressItem!!.address
+                                postCreateVM.post.x = locationVM.addressItem!!.x
+                                postCreateVM.post.y = locationVM.addressItem!!.y
+                                bottomSheet.subCloseSheet()
+                            } else if (profileVM != null) {
+                                addPlaceToProfile(locationVM.addressItem!!.address)
+                                bottomSheet.subCloseSheet()
+                            } else {
+                                coroutineScope.launch {
+                                    locationVM.addLocation()
+                                    bottomSheet.mainCloseSheet()
+                                }
                             }
                         }) {
                             Text(text = "확인")
                         }
                     },
                     dismissButton = { TextButton(onClick = {
-                        locationVM.showAlert(false, null)
                         checkPermission = false
+                        locationVM.addressList.value = mutableListOf()
+                        locationVM.showAlert(false, null)
                     }) {
                         Text(text = "취소")
                     }},
                     title = { Text(text = locationVM.addressItem!!.address) },
                     text = { Text(text = "으로 지역을 설정하시겠습니까?") }
                 )
+            } // if showAlert
+        } // Column
+        if (loading) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Transparent),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
-
         }
-    }
+    } // Scaffold
 }
 
 //@OptIn(ExperimentalMaterialApi::class)

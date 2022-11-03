@@ -75,13 +75,13 @@ fun PostCreateView(
         sheetContent = {
             when (bottomSheet.subSheet) {
                 SubCurrentBottomSheet.SearchSport -> SportAddView(
-                    bottomSheet = bottomSheet,
-                    postAddVM = postCreateVM,
-                    profileVM = null,
-                )
+                    bottomSheet = bottomSheet
+                ) { sport ->
+                    postCreateVM.post.sportHashtag = sport
+                }
                 SubCurrentBottomSheet.FindLocation -> FindLocationView(
                     bottomSheet = bottomSheet,
-                    postAddVM = postCreateVM,
+                    postCreateVM = postCreateVM,
                     profileVM = null
                 )
                 SubCurrentBottomSheet.Gallery -> GalleryView(bottomSheet, galleryVM)

@@ -33,8 +33,8 @@ class PostCreateViewModel @Inject constructor(
     private val encryptedSharedPreferences: SharedPreferences
 ) : ViewModel() {
     val api = PostAPI()
-    val storageHelper = StorageHelper()
 
+    val token = encryptedSharedPreferences.getString("token", "") ?: ""
     val username = encryptedSharedPreferences.getString("username", "") ?: ""
 
     val PLACE = stringPreferencesKey("place")
@@ -51,7 +51,7 @@ class PostCreateViewModel @Inject constructor(
     }
 
     var post = Post(username, "", "", MediaUrl(listOf(), listOf()),
-        "", mutableListOf(), "", "", "")
+        "", listOf(), "", "", "")
 
     init {
         viewModelScope.launch {
@@ -85,7 +85,7 @@ class PostCreateViewModel @Inject constructor(
                         fileList.add(compressedFile)
                     }
                 }
-                api.createPost(content, fileList)
+                api.createPost(token, post, fileList)
             }.onSuccess {
                 Log.d("addSuccess", "$it")
             }.onFailure {

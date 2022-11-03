@@ -34,10 +34,9 @@ import kr.moare.android.viewmodel.profile.ProfileViewModel
 @Composable
 fun SportAddView(
     bottomSheet: BottomSheet,
-    postAddVM: PostCreateViewModel?,
-    profileVM: ProfileViewModel?,
     sportSelectVM: SportSelectViewModel = hiltViewModel(),
     searchVM: SearchViewModel = hiltViewModel(),
+    addSport: (List<String>) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
 
@@ -94,14 +93,8 @@ fun SportAddView(
                 )
                 Button(
                     onClick = {
-                        if (postAddVM != null) {
-                            postAddVM.post.sportHashtag = sportSelectVM.selectedSport.value
-                            bottomSheet.subCloseSheet()
-                        }
-                        if (profileVM != null) {
-                            profileVM.newTeamProfile.sport = sportSelectVM.selectedSport.value
-                            bottomSheet.subCloseSheet()
-                        }
+                        addSport(sportSelectVM.selectedSport.value)
+                        bottomSheet.subCloseSheet()
                     },
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = Color.Transparent

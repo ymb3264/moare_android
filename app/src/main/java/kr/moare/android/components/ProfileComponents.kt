@@ -26,7 +26,7 @@ import kr.moare.android.entities.Post
 
 @Composable
 fun ProfileImageAddButton(
-    url: String?,
+    url: String,
     uri: Uri?,
     onClick: () -> Unit
 ) {
@@ -88,8 +88,7 @@ fun ProfileImageAddButton(
 
             Text(text = "사진 추가", color = Color.Gray, fontSize = 13.sp)
 
-//            url.isNotEmpty()
-            if (uri != null || url != null) {
+            if (uri != null || url.isNotEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -97,7 +96,7 @@ fun ProfileImageAddButton(
                     contentAlignment = Alignment.BottomStart
                 ) {
                     AsyncImage(
-                        model = url ?: uri,
+                        model = uri ?: url,
                         contentDescription = "image",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit

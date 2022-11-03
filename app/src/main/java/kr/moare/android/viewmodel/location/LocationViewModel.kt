@@ -25,10 +25,10 @@ class LocationViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
     val api = LocationAPI()
-    val locationHelper: LocationHelper
 
     var addressList = MutableStateFlow<MutableList<AddressItem>>(mutableStateListOf())
     var showAlert = MutableStateFlow(false)
+    val noResult = MutableStateFlow("")
 
     var addressItem: AddressItem? = null
 
@@ -36,17 +36,20 @@ class LocationViewModel @Inject constructor(
     val X = stringPreferencesKey("x")
     val Y = stringPreferencesKey("y")
 
-    init {
-        locationHelper = LocationHelper(context) { x, y -> searchCoordinateAddress(x, y) }
-    }
+    val loading = MutableStateFlow(false)
 
     fun searchAddress(query: String) {
         viewModelScope.launch {
             kotlin.runCatching {
                 api.searchAddress(query)
             }.onSuccess {
-                Log.d("success", "$it")
                 addressList.value.clear()
+                if (it.documents.isEmpty()) {
+                    noResult.value = "검색 결과가 없습니다."
+                } else {
+                    noResult.value = ""
+                }
+
                 it.documents.forEach { address ->
                     var addressItem = AddressItem(address = "", roadAddress = "", x = address.x, y = address.y)
 
@@ -78,6 +81,8 @@ class LocationViewModel @Inject constructor(
                         addressList.value.add(addressItem)
                     }
                 }
+
+                Log.d("success", "$it")
             }.onFailure {
                 Log.d("fail", "$it")
             }
@@ -85,6 +90,8 @@ class LocationViewModel @Inject constructor(
     }
 
     fun startLocationUpdates() {
+        loading.value = true
+        val locationHelper = LocationHelper(context) { x, y -> searchCoordinateAddress(x, y) }
         locationHelper.startLocationUpdates()
     }
 
@@ -111,9 +118,10 @@ class LocationViewModel @Inject constructor(
                     addressItem.roadAddress += it.address2 + " "
                     addressItem.roadAddress += it.roadName + " "
                 }
-
+                loading.value = false
                 showAlert(true, addressItem)
             }.onFailure {
+                loading.value = false
                 Log.d("fail", "$it")
             }
         }

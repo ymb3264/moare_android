@@ -14,7 +14,7 @@ import kotlinx.serialization.Transient
 data class UserProfile(
     var createdAt: String,
     var username: String,
-    var sport: List<String>,
+    var sportHashtag: List<String>,
     var name: String,
     var profileImage: String,
     var content: String,
@@ -31,7 +31,7 @@ data class UserProfile(
 data class UpdateProfile(
     var createdAt: String,
     var username: String,
-    var sport: List<String>,
+    var sportHashtag: List<String>,
     var name: String,
     var profileImage: String,
     var content: String,

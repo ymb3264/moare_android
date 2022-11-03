@@ -16,13 +16,15 @@ import kr.moare.android.view.common.ProfileGalleryView
 import kr.moare.android.view.common.SportAddView
 import kr.moare.android.viewmodel.common.GalleryViewModel
 import kr.moare.android.viewmodel.profile.ProfileViewModel
+import kr.moare.android.viewmodel.start.JoinViewModel
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun TeamProfileCreateView(
     bottomSheet: BottomSheet,
     profileVM: ProfileViewModel,
-    galleryVM: GalleryViewModel = hiltViewModel()
+    galleryVM: GalleryViewModel = hiltViewModel(),
+    joinVM: JoinViewModel = hiltViewModel()
 ) {
     var teamUsername by remember { mutableStateOf("") }
     var teamName by remember { mutableStateOf("") }
@@ -30,10 +32,17 @@ fun TeamProfileCreateView(
 
     val croppedImage by galleryVM.croppedImage.collectAsState()
 
-    val sport = profileVM.newTeamProfile.sport
+    val showErrorText by joinVM.showErrorText.collectAsState()
+    val showErrorText2 by joinVM.showErrorText2.collectAsState()
+    val usernameBtn by joinVM.usernameBtn.collectAsState()
+
+    val errorText1 = "이미 사용중인 이름입니다"
+    val errorText2 = "사용자 이름에는 영어 대/소문자, 숫자,\n밑줄(_) 및 마침표(.)만 사용할 수 있습니다."
+
+    val sport = profileVM.newTeamProfile.sportHashtag
     val place = profileVM.newTeamProfile.place
 
-    val completeBtnEnabled = profileVM.username.isNotEmpty() && teamUsername.isNotEmpty() && teamName.isNotEmpty()
+    val completeBtnEnabled = usernameBtn && teamUsername.isNotEmpty() && teamName.isNotEmpty()
 
     BottomSheetScaffold(
         scaffoldState = bottomSheet.subSheetScaffoldState,
@@ -59,15 +68,17 @@ fun TeamProfileCreateView(
             bottomSheet.subSheet?.let {
                 when (it) {
                     SubCurrentBottomSheet.SearchSport -> SportAddView(
-                        bottomSheet = bottomSheet,
-                        postAddVM = null,
-                        profileVM = profileVM,
-                    )
+                        bottomSheet = bottomSheet
+                    ) { sport ->
+                        profileVM.newTeamProfile.sportHashtag = sport
+                    }
                     SubCurrentBottomSheet.FindLocation -> FindLocationView(
                         bottomSheet = bottomSheet,
-                        postAddVM = null,
+                        postCreateVM = null,
                         profileVM = profileVM
-                    )
+                    ) { place ->
+                        profileVM.newTeamProfile.place = place
+                    }
                     SubCurrentBottomSheet.Gallery -> ProfileGalleryView(
                         bottomSheet = bottomSheet,
                         galleryVM = galleryVM
@@ -83,7 +94,7 @@ fun TeamProfileCreateView(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProfileImageAddButton(null, croppedImage) {
+            ProfileImageAddButton("", croppedImage) {
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
             }
 
@@ -122,6 +133,14 @@ fun TeamProfileCreateView(
                 expanded = profileVM.username.isNotEmpty(),
                 readOnly = true
             )
+
+            if (showErrorText || showErrorText2) {
+                Text(text = if (showErrorText) errorText2 else errorText1,
+                    color = Color.Red,
+                    style = MaterialTheme.typography.caption,
+                    modifier = Modifier.padding(bottom = 10.dp))
+            }
+
             CustomPlainTextField1(
                 modifier = Modifier
                     .padding(vertical = 6.dp),
@@ -130,8 +149,10 @@ fun TeamProfileCreateView(
                 onTextChange = {
                     teamUsername = it
                     profileVM.newTeamProfile.username = it
+                    joinVM.checkUsername(teamUsername)
+                    joinVM.checkUsername2(teamUsername)
                 },
-                expanded = teamUsername.isNotEmpty()
+                expanded = usernameBtn
             )
             CustomPlainTextField1(
                 modifier = Modifier

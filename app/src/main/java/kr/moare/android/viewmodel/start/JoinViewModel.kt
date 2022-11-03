@@ -74,17 +74,19 @@ class JoinViewModel @Inject constructor(
         showErrorText.value = !isValid
     }
 
-    fun checkUsername2(username: String, goNext: (Boolean) -> Unit) {
+    fun checkUsername2(username: String, goNext: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             kotlin.runCatching {
                 api.checkUsername(username)
             }.onSuccess {
                 if (it.message == "available") {
                     showErrorText2.value = false
+                    usernameBtn.value = true
                     account.username = username
                     goNext(true)
                 } else {
                     showErrorText2.value = true
+                    usernameBtn.value = false
                 }
                 Log.d("success", "$it")
             }.onFailure {

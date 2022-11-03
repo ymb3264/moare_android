@@ -6,7 +6,6 @@ sealed class MainCurrentBottomSheet() {
 //    object AddPost: MainCurrentBottomSheet()
     object CreateTeamProfile: MainCurrentBottomSheet()
     object UpdateProfile: MainCurrentBottomSheet()
-    object UpdateTeamProfile: MainCurrentBottomSheet()
     object MyAccounts: MainCurrentBottomSheet()
 }
 

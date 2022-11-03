@@ -9,23 +9,34 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.http.*
+import io.ktor.util.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import org.json.JSONObject
 import java.io.File
 
 class PostAPI {
 
-    suspend fun createPost(content: String, files: List<File>): MessageResponse {
+    suspend fun createPost(token: String, post: Post, files: List<File>): MessageResponse {
+        val jsonPost = Json.encodeToString(post)
+
         return KtorClient.httpClient.submitFormWithBinaryData(
             url = APIRoutes.post,
             formData = formData {
-                append("content", content)
+                append("post", jsonPost)
+
                 files.forEach {
-                    append("image", it.readBytes(), Headers.build {
+                    append("media", it.readBytes(), Headers.build {
                         append(HttpHeaders.ContentType, "application/json")
                         append(HttpHeaders.ContentDisposition, "filename=\"${it.name}\"")
                     })
                 }
             }
-        ).body()
+        ) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+        }.body()
     }
 
     suspend fun getPosts(yearAndMonth: String, place: UserDefaultPlace, username: String, date: String): List<Post> {

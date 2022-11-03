@@ -38,7 +38,7 @@ class ProfileViewModel @Inject constructor(
     val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.KOREA)
 
     val token = encryptedSharedPreferences.getString("token", "") ?: ""
-    val username = encryptedSharedPreferences.getString("username", "") ?: ""
+    var username = encryptedSharedPreferences.getString("username", "") ?: ""
 
     val PLACE = stringPreferencesKey("place")
     val placeFlow: Flow<String> = dataStore.data.map { preferences ->
@@ -90,7 +90,7 @@ class ProfileViewModel @Inject constructor(
                 profile.value = it
                 newUserProfile.value.createdAt = it.createdAt
                 newUserProfile.value.username = it.username
-                newUserProfile.value.sport = it.sport
+                newUserProfile.value.sportHashtag = it.sportHashtag
                 newUserProfile.value.name = it.name
                 newUserProfile.value.profileImage = it.profileImage
                 newUserProfile.value.content = it.content
@@ -190,7 +190,16 @@ class ProfileViewModel @Inject constructor(
     fun changeProfile(username: String) {
         myAccounts.forEach {
             if (it.username == username) {
+                encryptedSharedPreferences.edit().putString("username", it.username).apply()
+                this.username = encryptedSharedPreferences.getString("username", "") ?: ""
                 profile.value = it
+                newUserProfile.value.createdAt = it.createdAt
+                newUserProfile.value.username = it.username
+                newUserProfile.value.sportHashtag = it.sportHashtag
+                newUserProfile.value.name = it.name
+                newUserProfile.value.profileImage = it.profileImage
+                newUserProfile.value.content = it.content
+                newUserProfile.value.place = it.place
                 return
             }
         }

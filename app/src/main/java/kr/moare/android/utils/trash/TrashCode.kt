@@ -416,3 +416,17 @@ import kr.moare.android.utils.PostNavItem
 //        Spacer(Modifier.weight(1f))
 //    }
 //}
+
+// 처음 startviewButton(원이 움직이는버튼)
+//            StartViewButton(
+//                text = "다음",
+//                onClick = {
+//                    joinVM.checkUsername(username) {
+//                        if (it) {
+//                            navController.navigate(StartNavItem.SportSelect.name)
+//                        }
+//                    }
+//                },
+//                enabled = username.isNotEmpty(),
+//                width = screenWidth
+//            )
