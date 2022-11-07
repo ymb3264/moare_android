@@ -1,4 +1,4 @@
-package kr.moare.android.viewmodel.location
+package kr.moare.android.viewmodel.common
 
 import android.content.Context
 import android.util.Log
@@ -102,6 +102,7 @@ class LocationViewModel @Inject constructor(
                 api.searchCoordinateAddress(coordinate)
             }.onSuccess { response ->
                 Log.d("success", "$response")
+                // 위치 가져오지 못했을때 indexOutofBounds에러났다
                 val address = response.documents[0].generalAddress
                 val roadAddress = response.documents[0].roadAddress
                 var addressItem =

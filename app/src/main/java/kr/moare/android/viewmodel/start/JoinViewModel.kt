@@ -25,7 +25,7 @@ class JoinViewModel @Inject constructor(
 //    var serverCode = MutableStateFlow<EmailCode>(EmailCode(""))
     val api: JoinAPI = JoinAPI()
     var servercode = ""
-    var account = JoinAccount(email = "", password = "", username = "", sportHashtag = mutableListOf<String>())
+    var account = JoinAccount(email = "", createdAt = "", password = "", username = "", sportHashtag = mutableListOf<String>())
 
     var showErrorText = MutableStateFlow(false)
     val joinSuccess = MutableStateFlow(false)

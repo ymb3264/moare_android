@@ -26,9 +26,7 @@ import kr.moare.android.components.SearchBar
 import kr.moare.android.components.SelectedSportHashtag
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.viewmodel.common.SportSelectViewModel
-import kr.moare.android.viewmodel.post.PostCreateViewModel
-import kr.moare.android.viewmodel.search.SearchViewModel
-import kr.moare.android.viewmodel.profile.ProfileViewModel
+import kr.moare.android.viewmodel.common.SearchViewModel
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
 @Composable

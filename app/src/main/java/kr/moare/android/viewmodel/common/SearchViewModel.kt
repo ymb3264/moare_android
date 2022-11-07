@@ -1,4 +1,4 @@
-package kr.moare.android.viewmodel.search
+package kr.moare.android.viewmodel.common
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf

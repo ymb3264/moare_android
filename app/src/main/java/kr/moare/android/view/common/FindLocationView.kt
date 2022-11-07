@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
@@ -18,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kr.moare.android.components.SearchBar
 import kr.moare.android.entities.BottomSheet
-import kr.moare.android.viewmodel.location.LocationViewModel
+import kr.moare.android.viewmodel.common.LocationViewModel
 import kr.moare.android.viewmodel.post.PostCreateViewModel
 import kr.moare.android.viewmodel.profile.ProfileViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi

@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +26,7 @@ import kr.moare.android.components.PostListView
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.utils.*
 import kr.moare.android.viewmodel.post.PostViewModel
-import kr.moare.android.viewmodel.search.SearchViewModel
+import kr.moare.android.viewmodel.common.SearchViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
