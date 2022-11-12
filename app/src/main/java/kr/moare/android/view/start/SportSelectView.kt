@@ -18,12 +18,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import kr.moare.android.components.CircleStartViewButton
 import kr.moare.android.components.SearchBar
 import kr.moare.android.components.SelectedSportHashtag
+import kr.moare.android.components.SportSelectButton
 import kr.moare.android.utils.SplashNavItem
+import kr.moare.android.viewmodel.common.SportSelectViewModel
 import kr.moare.android.viewmodel.start.JoinViewModel
 
 @SuppressLint("UnrememberedMutableState")
@@ -31,13 +34,15 @@ import kr.moare.android.viewmodel.start.JoinViewModel
 fun SportSelectView(
     startNavController: NavController,
     splashNavController: NavController,
-    joinVM: JoinViewModel = viewModel()
+    joinVM: JoinViewModel,
+    sportSelectVM: SportSelectViewModel = hiltViewModel()
 ) {
     var query by remember { mutableStateOf("") }
 
-    val sportList by joinVM.sportList.collectAsState()
-    val newSportList by joinVM.newSportList.collectAsState()
-    val selectedSport by joinVM.selectedSport.collectAsState()
+    val loading by sportSelectVM.loading.collectAsState()
+    val sportList by sportSelectVM.sportList.collectAsState()
+    val newSportList by sportSelectVM.newSportList.collectAsState()
+    val selectedSport by sportSelectVM.selectedSport.collectAsState()
     val showAlert by joinVM.showAlert.collectAsState()
 
     val configuration = LocalConfiguration.current
@@ -64,7 +69,7 @@ fun SportSelectView(
             text = query,
             onTextChange = {
                 query = it
-                joinVM.searchSport(it)
+                sportSelectVM.searchSport(it)
             }
         )
 
@@ -80,125 +85,27 @@ fun SportSelectView(
             }
         }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier
-                .padding(horizontal = 12.dp)
-                .weight(0.7f)
-        ) {
-            if (query == "") {
-                items(sportList.keys.toList()) { sport ->
-                    Button(
-                        onClick = {
-                            joinVM.selectSport(sport)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = Color.White
-                        ),
-                        elevation = ButtonDefaults.elevation(
-                            defaultElevation = 0.dp
-                        ),
-                        shape = RectangleShape,
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier
-                            .padding(
-                                start = 7.dp,
-                                end = 7.dp,
-                                bottom = 20.dp
-                            )
-                            .height(50.dp)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            if (sportList[sport] == true) {
-                                Box(
-                                    modifier = Modifier
-                                        .border(
-                                            BorderStroke(1.dp, MaterialTheme.colors.primary),
-                                            RoundedCornerShape(15.dp)
-                                        )
-                                        .fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = sport, color = MaterialTheme.colors.primary)
-                                }
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = sport)
-                                    Box(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomStart)
-                                            .padding(top = 10.dp)
-                                            .clip(RectangleShape)
-                                            .fillMaxWidth()
-                                            .height(2.dp)
-                                            .background(Color.Gray)
-                                    )
-                                }
-                            }
+        if (loading) {
+            CircularProgressIndicator()
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .weight(0.7f)
+            ) {
+                if (query == "") {
+                    items(sportList.keys.toList()) { sport ->
+                        SportSelectButton(selected = sportList[sport], sport = sport) {
+                            sportSelectVM.selectSport(sport)
+                            joinVM.account.sportHashtag = selectedSport
                         }
                     }
-                }
-            } else {
-                items(newSportList.keys.toList()) { sport ->
-                    Button(
-                        onClick = {
-                            joinVM.newSelectSport(sport)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = Color.White
-                        ),
-                        elevation = ButtonDefaults.elevation(
-                            defaultElevation = 0.dp
-                        ),
-                        shape = RectangleShape,
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier
-                            .padding(
-                                start = 7.dp,
-                                end = 7.dp,
-                                bottom = 20.dp
-                            )
-                            .height(50.dp)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            if (sportList[sport] == true) {
-                                Box(
-                                    modifier = Modifier
-                                        .border(
-                                            BorderStroke(1.dp, MaterialTheme.colors.primary),
-                                            RoundedCornerShape(15.dp)
-                                        )
-                                        .fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = sport, color = MaterialTheme.colors.primary)
-                                }
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = sport)
-                                    Box(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomStart)
-                                            .padding(top = 10.dp)
-                                            .clip(RectangleShape)
-                                            .fillMaxWidth()
-                                            .height(2.dp)
-                                            .background(Color.Gray)
-                                    )
-                                }
-                            }
+                } else {
+                    items(newSportList.keys.toList()) { sport ->
+                        SportSelectButton(selected = sportList[sport], sport = sport) {
+                            sportSelectVM.newSelectSport(sport)
+                            joinVM.account.sportHashtag = selectedSport
                         }
                     }
                 }

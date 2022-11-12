@@ -1,6 +1,8 @@
 package kr.moare.android.components
 
 import android.net.Uri
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -84,6 +87,245 @@ fun SearchTextField(modifier: Modifier, placeholder: String, text: String, onTex
         },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = keyboardActions
+    )
+}
+
+@Composable
+fun SearchViewButton(
+    sport: List<String>?,
+    place: String?,
+    required: Boolean = true,
+    expanded: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Button(onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .height(50.dp),
+        shape = RectangleShape,
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = Color.Transparent
+        ),
+        elevation = ButtonDefaults.elevation(
+            defaultElevation = 0.dp
+        ),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        if (required) {
+            Box(
+                Modifier
+//                    .padding(vertical = 4.dp)
+                    .padding(end = 8.dp)
+                    .background(MaterialTheme.colors.primary)
+                    .width(2.dp)
+                    .animateContentSize(tween(500))
+                    .height(if (expanded) 50.dp else 5.dp)
+                    .align(Alignment.CenterVertically)
+            )
+        } else {
+            Box(
+                Modifier
+                    .padding(start = 12.dp)
+                    .background(Color.Transparent)
+                    .size(2.dp))
+        }
+
+        sport?.let {
+            if (sport.isEmpty()) {
+                Text(text = "운동종목", color = Color.Gray)
+            } else {
+                for (i in 0..sport.lastIndex) {
+                    Text(text = sport[i],
+                        color = Color.Black)
+                    if (i != sport.lastIndex) {
+                        TextDivideLine()
+                    }
+                }
+//                sport.forEachIndexed { index, sport ->
+//                    Text(text = sport,
+//                        color = Color.Black)
+//                    if (index != sport.lastIndex) {
+//                        TextDivideLine()
+//                    }
+//                }
+            }
+        }
+
+        place?.let {
+            if (place.isEmpty()) {
+                Text(text = "장소", color = Color.Gray)
+            } else {
+                Text(text = place, color = Color.Black)
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Icon(
+            painter = painterResource(R.drawable.ic_arrow_right),
+            contentDescription = "arrowRight",
+            tint = Color.Gray,
+            modifier = Modifier
+//                .padding(end = 6.dp)
+                .size(20.dp),
+        )
+    }
+}
+
+@Composable
+fun TextDivideLine() {
+    Box(
+        Modifier
+            .padding(vertical = 16.dp, horizontal = 8.dp)
+            .clip(RectangleShape)
+            .background(Color.Gray)
+            .width(1.dp)
+            .fillMaxHeight()
+    )
+}
+
+@Composable
+fun CustomPlainTextField1(
+    modifier: Modifier = Modifier,
+    placeholder: String,
+    text: String,
+    expandedHeight: Dp = 36.dp,
+    required: Boolean = true,
+    expanded: Boolean = false,
+    readOnly: Boolean = false,
+    onTextChange: (String) -> Unit
+) {
+    val focusRequester by remember { mutableStateOf(FocusRequester()) }
+    var isFocused by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().height(36.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (required) {
+            Box(
+                Modifier
+                    .padding(start = 12.dp)
+//                    .padding(top = if (expanded) 0.dp else 18.dp)
+                    .background(MaterialTheme.colors.primary)
+                    .width(2.dp)
+                    .animateContentSize(tween(500))
+                    .height(if (expanded) expandedHeight else 5.dp)
+                    .align(Alignment.CenterVertically)
+            )
+        } else {
+            Box(
+                Modifier
+                    .padding(start = 12.dp)
+                    .background(Color.Transparent)
+                    .size(2.dp))
+        }
+
+        BasicTextField(
+            value = text,
+            onValueChange = onTextChange,
+            modifier = modifier
+                .padding(start = 8.dp, end = 12.dp)
+                .fillMaxWidth()
+                .weight(1f)
+                .focusRequester(focusRequester = focusRequester)
+                .onFocusChanged { isFocused = it.isFocused }
+                .align(Alignment.CenterVertically),
+            decorationBox = { innerTextField ->
+                if (text.isEmpty() && !isFocused) {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.button,
+                        color = Color.Gray,
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+                } else {
+                    innerTextField()
+                }
+            },
+            readOnly = readOnly,
+            singleLine = true,
+        )
+    }
+}
+
+@Composable
+fun CustomPlainTextField2(
+    modifier: Modifier = Modifier,
+    placeholder: String,
+    text: String,
+    expandedHeight: Dp = 86.dp,
+    required: Boolean = true,
+    expanded: Boolean = false,
+    onTextChange: (String) -> Unit
+) {
+    val focusRequester by remember { mutableStateOf(FocusRequester()) }
+    var isFocused by remember { mutableStateOf(false) }
+
+    Row() {
+        if (required) {
+            Box(
+                Modifier
+                    .padding(start = 12.dp)
+                    .padding(bottom = 8.dp)
+                    .background(MaterialTheme.colors.primary)
+                    .width(2.dp)
+                    .animateContentSize(tween(500))
+                    .height(if (expanded) expandedHeight else 5.dp)
+                    .align(Alignment.CenterVertically)
+            )
+        } else {
+            Box(
+                Modifier
+                    .padding(start = 12.dp)
+                    .background(Color.Transparent)
+                    .size(2.dp))
+        }
+
+        Column(
+            Modifier
+                .height(94.dp)
+                .fillMaxWidth()
+        ) {
+            ContentTextFieldLine(Modifier.padding(vertical = 8.dp))
+
+            BasicTextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = modifier
+                    .padding(start = 10.dp, end = 12.dp)
+                    .height(60.dp)
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .focusRequester(focusRequester = focusRequester)
+                    .onFocusChanged { isFocused = it.isFocused },
+                decorationBox = { innerTextField ->
+                    if (text.isEmpty() && !isFocused) {
+                        Text(
+                            text = placeholder,
+                            style = MaterialTheme.typography.button,
+                            color = Color.Gray
+                        )
+                    } else {
+                        innerTextField()
+                    }
+                }
+            )
+
+            ContentTextFieldLine(Modifier.padding(vertical = 8.dp))
+        }
+    }
+}
+
+@Composable
+fun ContentTextFieldLine(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .padding(end = 12.dp)
+            .background(Color.Gray)
+            .fillMaxWidth()
+            .height(1.dp)
     )
 }
 

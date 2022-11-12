@@ -22,16 +22,12 @@ class JoinViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val encryptedSharedPreferences: SharedPreferences
 ) : ViewModel() {
-//    var serverCode = MutableStateFlow<EmailCode>(EmailCode(""))
     val api: JoinAPI = JoinAPI()
     var servercode = ""
     var account = JoinAccount(email = "", createdAt = "", password = "", username = "", sportHashtag = mutableListOf<String>())
 
     var showErrorText = MutableStateFlow(false)
     val joinSuccess = MutableStateFlow(false)
-    var sportList = MutableStateFlow<MutableMap<String, Boolean>>(mutableStateMapOf("축구" to false))
-    var newSportList = MutableStateFlow<MutableMap<String, Boolean>>(mutableStateMapOf())
-    var selectedSport = MutableStateFlow<MutableList<String>>(mutableStateListOf())
 
     var email = MutableStateFlow("")
     var emailBtn = MutableStateFlow(false)
@@ -45,10 +41,7 @@ class JoinViewModel @Inject constructor(
 
     private val pattern = Patterns.EMAIL_ADDRESS
 
-    init {
-        getSportList()
-    }
-
+    // api
     fun getEmailCode() {
         viewModelScope.launch {
             kotlin.runCatching {
@@ -60,18 +53,6 @@ class JoinViewModel @Inject constructor(
                 Log.d("fail", "$it")
             }
         }
-    }
-
-    fun checkUsername(username: String) {
-        this.username.value = username
-        showErrorText2.value = false
-
-        val pwdRegex1 =
-            "^[A-Za-z_.[0-9]]{1,30}$"
-        val isValid = Pattern.matches(pwdRegex1, username)
-
-        usernameBtn.value = isValid
-        showErrorText.value = !isValid
     }
 
     fun checkUsername2(username: String, goNext: (Boolean) -> Unit = {}) {
@@ -87,21 +68,6 @@ class JoinViewModel @Inject constructor(
                 } else {
                     showErrorText2.value = true
                     usernameBtn.value = false
-                }
-                Log.d("success", "$it")
-            }.onFailure {
-                Log.d("fail", "$it")
-            }
-        }
-    }
-
-    fun getSportList() {
-        viewModelScope.launch {
-            kotlin.runCatching {
-                api.getSportList()
-            }.onSuccess {
-                it.sportList.forEach { sport ->
-                    sportList.value.put(sport, false)
                 }
                 Log.d("success", "$it")
             }.onFailure {
@@ -128,6 +94,13 @@ class JoinViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    // internal
+    fun checkEmail(email: String) {
+        this.email.value = email
+        emailBtn.value = pattern.matcher(email).matches()
+        if (emailBtn.value) showErrorText.value = false
     }
 
     fun checkCode(clientCode: String, goNext: (Boolean) -> Unit) {
@@ -169,45 +142,15 @@ class JoinViewModel @Inject constructor(
         }
     }
 
-    fun selectSport(sport: String) {
-        if (sportList.value[sport] == true) {
-            sportList.value[sport] = false
-            account.sportHashtag = account.sportHashtag.filter {
-                it != sport
-            }.toMutableList()
-            selectedSport.value.remove(sport)
-        } else {
-            sportList.value[sport] = true
-            account.sportHashtag.add(sport)
-            selectedSport.value.add(sport)
-        }
-    }
+    fun checkUsername(username: String) {
+        this.username.value = username
+        showErrorText2.value = false
 
-    fun newSelectSport(sport: String) {
-        if (newSportList.value[sport] == true) {
-            newSportList.value[sport] = false
-            sportList.value[sport] = false
-            account.sportHashtag = account.sportHashtag.filter {
-                it != sport
-            }.toMutableList()
-            selectedSport.value.remove(sport)
-        } else {
-            newSportList.value[sport] = true
-            sportList.value[sport] = true
-            account.sportHashtag.add(sport)
-            selectedSport.value.add(sport)
-        }
-    }
+        val pwdRegex1 =
+            "^[A-Za-z_.[0-9]]{1,30}$"
+        val isValid = Pattern.matches(pwdRegex1, username)
 
-    fun searchSport(query: String) {
-        newSportList.value = sportList.value.filter { sport ->
-            sport.key.contains(query)
-        }.toMutableMap()
-    }
-
-    fun checkEmail(email: String) {
-        this.email.value = email
-        emailBtn.value = pattern.matcher(email).matches()
-        if (emailBtn.value) showErrorText.value = false
+        usernameBtn.value = isValid
+        showErrorText.value = !isValid
     }
 }
