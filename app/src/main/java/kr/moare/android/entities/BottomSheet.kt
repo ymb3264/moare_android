@@ -43,4 +43,12 @@ data class BottomSheet @OptIn(ExperimentalMaterialApi::class) constructor(
             subSheet = SubCurrentBottomSheet.Empty
         }
     }
+    @OptIn(ExperimentalMaterialApi::class)
+    val modalCloseSheet: (MainCurrentBottomSheet) -> Unit = {
+        coroutineScope.launch {
+            mainSheetScaffoldState.bottomSheetState.collapse()
+            mainSheet = it
+            mainSheetScaffoldState.bottomSheetState.expand()
+        }
+    }
 }

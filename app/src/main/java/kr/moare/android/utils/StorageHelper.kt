@@ -68,7 +68,7 @@ class StorageHelper {
         } else 0L
 
         val date  = Date(duration)
-        val format = SimpleDateFormat("mm:ss")
+        val formatter = SimpleDateFormat("mm:ss")
 
         return Attachment(
             uri = getContentUri(mimeType, id),
@@ -76,7 +76,7 @@ class StorageHelper {
             mimeType = mimeType,
             title = displayName,
             size = fileSize,
-            videoLength = format.format(date)
+            videoLength = formatter.format(date)
         )
     }
 

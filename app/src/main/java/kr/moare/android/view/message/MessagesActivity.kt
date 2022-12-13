@@ -80,7 +80,7 @@ class MessagesActivity : ComponentActivity() {
                     inputField = RectangleShape,
                 ),
             ) {
-                CustomUi()
+                CustomMessageScreen()
 //                MessagesScreen(channelId = channelId)
             }
         }
@@ -97,7 +97,7 @@ class MessagesActivity : ComponentActivity() {
     }
 
     @Composable
-    fun CustomUi() {
+    fun CustomMessageScreen() {
         val isShowingAttachments = attachmentsPickerViewModel.isShowingAttachments
         val selectedMessagesState = listViewModel.currentMessagesState.selectedMessageState
         val user by listViewModel.user.collectAsState()

@@ -11,9 +11,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import kr.moare.android.components.CircleStartViewButton
+import kr.moare.android.components.PwdTextField
+import kr.moare.android.components.StartViewButton
 import kr.moare.android.components.StartViewTextField
 import kr.moare.android.viewmodel.start.LoginViewModel
+import kotlin.math.log
 
 @Composable
 fun LoginView(
@@ -24,6 +26,7 @@ fun LoginView(
     var pwd by remember { mutableStateOf("") }
 
     val showErrorText by loginVM.showErrorText.collectAsState()
+    val loading by loginVM.loginLoading.collectAsState()
 
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
@@ -51,17 +54,23 @@ fun LoginView(
                 )
             }
 
-            StartViewTextField(placeholder = "이메일", text = email, onTextChange = { email = it })
-            StartViewTextField(placeholder = "비밀번호", text = pwd, onTextChange = { pwd = it })
-//            StartViewButton(
-//                text = "로그인",
-//                onClick = {
-//                loginVM.login(email, pwd) },
-//                enabled = email.isNotEmpty() && pwd.isNotEmpty(),
-//                width = screenWidth
-//            )
-            CircleStartViewButton(
-                enabled = email.isNotEmpty() && pwd.isNotEmpty()
+            StartViewTextField(
+                placeholder = "이메일",
+                text = email,
+                textClear = { email = "" },
+                onTextChange = { email = it }
+            )
+
+            PwdTextField(
+                placeholder = "비밀번호",
+                text = pwd,
+                textClear = { pwd = "" },
+                onTextChange = { pwd = it }
+            )
+
+            StartViewButton(
+                enabled = email.isNotEmpty() && pwd.isNotEmpty(),
+                loading = loading
             ) {
                 loginVM.login(email, pwd)
             }

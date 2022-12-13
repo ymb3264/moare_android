@@ -2,178 +2,186 @@ package kr.moare.android.viewmodel.post
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.request.ImageRequest
-import kr.moare.android.entities.MediaUrl
-import kr.moare.android.entities.Post
-import kr.moare.android.entities.UserDefaultPlace
 import kr.moare.android.network.PostAPI
-import kr.moare.android.utils.StorageHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
+import io.ktor.util.Identity.decode
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kr.moare.android.entities.*
+import kr.moare.android.utils.LocationDataStore
+import kr.moare.android.utils.PreferencesKey
+import kr.moare.android.utils.UserInfoDataStore
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
 class PostViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val dataStore: DataStore<Preferences>,
+    @LocationDataStore private val locationDataStore: DataStore<Preferences>,
+    @UserInfoDataStore private val userInfoDataStore: DataStore<Preferences>,
     private val encryptedSharedPreferences: SharedPreferences
 ) : ViewModel() {
-
-    var postList = MutableStateFlow<MutableList<List<Post>>>(mutableStateListOf())
-    var showSearchView = MutableStateFlow(false)
     val api = PostAPI()
-    val username = encryptedSharedPreferences.getString("username", "") ?: ""
 
-    val storageHelper = StorageHelper()
+    private val usernameFlow = userInfoDataStore.data.map {
+        it[PreferencesKey.USERNAME] ?: ""
+    }
+    var username = ""
 
-    val PLACE = stringPreferencesKey("place")
-    val X = stringPreferencesKey("x")
-    val Y = stringPreferencesKey("y")
-    val placeFlow: Flow<String> = dataStore.data.map { preferences ->
-        preferences[PLACE] ?: ""
-    }
-    val xFlow: Flow<String> = dataStore.data.map { preferences ->
-        preferences[X] ?: ""
-    }
-    val yFlow: Flow<String> = dataStore.data.map { preferences ->
-        preferences[Y] ?: ""
+    val showSearchView = MutableStateFlow(false)
+
+    val currentLocationFlow = locationDataStore.data.map {
+        it[PreferencesKey.CURRENTLOCATION] ?: ""
     }
 
-    var place = UserDefaultPlace("", "", "")
-    var allPost = mutableListOf<Post>()
-    var num = 0
+    val postsList = MutableStateFlow<MutableList<MutableList<Post>>>(mutableStateListOf())
+    var postsData = mutableListOf<Post>()
+    var postNum = 6
 
-    var post = MutableStateFlow<Post>(
-        Post(username, "", "", MediaUrl(listOf(), listOf()),
-            "", mutableListOf(), "", "", "")
-    )
+    val postLike = MutableStateFlow(listOf<String>())
 
-    var showingGallry = MutableStateFlow(false)
+    val noPost = MutableStateFlow(false)
+    val loading = MutableStateFlow(false)
 
-    val isRefreshing = MutableStateFlow(false)
-
-    var onePost = MutableStateFlow<Post>(
-        Post(username, "", "", MediaUrl(listOf(), listOf()),
-            "", mutableListOf(), "", "", "")
-    )
+//    var onePost = MutableStateFlow<Post>(
+//        Post(username, "", "", "", listOf(), "", listOf(), "", "", "", null, null)
+//    )
 
     init {
         viewModelScope.launch {
-//            if (placeFlow.toString() != "") {
-                initUserLocation()
-//                getAllPost()
-//            }
+            currentLocationFlow.collect { currentLocation ->
+                if (currentLocation.isNotEmpty()) {
+                    loading.value = true
+                    getPosts(Json.decodeFromString(currentLocation))
+                }
+            }
+        }
+        viewModelScope.launch {
+            usernameFlow.collect {
+                username = it
+            }
         }
     }
 
-    suspend fun getAllPost() {
+    suspend fun getPosts(currentLocation: UserDefaultLocation) {
+        noPost.value = false
+        val yearMonthFormatter = SimpleDateFormat("yyyy-MM", Locale.KOREA)
+
+        val cal = Calendar.getInstance()
+        cal.time = Date()
+        cal.add(Calendar.DATE, -1)
+        val oneDayBeforeFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.KOREA)
+        val oneDayBefore = oneDayBeforeFormatter.format(cal.time)
+
         kotlin.runCatching {
-            isRefreshing.value = true
-            postList.value.clear()
-            api.getPosts("2022/10",place, username, "date")
+            api.getPosts(yearMonthFormatter.format(Date()), currentLocation, username, oneDayBefore)
         }.onSuccess {
-            allPost = it as MutableList<Post>
-            var firstList = mutableListOf<Post>()
-            allPost.forEachIndexed { index, post ->
-                val image = post.mediaUrl.image
-                if (index < 6 && image.isNotEmpty()) {
-                    var imageList = mutableListOf<ImageRequest>()
-                    for (element in image) {
-                        val request = ImageRequest.Builder(context)
-                            .data(element.url)
-                            .crossfade(true)
-                            .build()
-                        imageList.add(request)
-                    }
-                    post.imageRequest = imageList
-                    firstList.add(post)
-                }
+            if (it.isEmpty()) {
+                noPost.value = true
+                return
             }
+
+            postsData = it.toMutableList()
+            val num = if (postsData.count() <= 6) {
+                postsData.count()
+            } else {
+                postNum
+            }
+
+            val newPosts = makeImageRequest(postsData.take(num).toMutableList())
+
+            loading.value = false
+            postsList.value.clear()
+            postsList.value.add(newPosts)
             Log.d("success", "$it")
-            postList.value.add(firstList)
-            num += 6
-            isRefreshing.value = false
-            Log.d("post", "${postList.value}")
         }.onFailure {
-            isRefreshing.value = false
+            loading.value = false
             Log.d("FAIL", "message: $it")
         }
     }
 
     fun getMorePost() {
-        var newList = mutableListOf<Post>()
-        val count = allPost.count()
-
-        if (count in (num + 1) until (num + 6)) {
-            for (post in num until count) {
-                var post = allPost[post]
-                val image = post.mediaUrl.image
-                val video = post.mediaUrl.video
-                if (image.isNotEmpty()) {
-                    var imageList = mutableListOf<ImageRequest>()
-                    for (element in image) {
-                        val request = ImageRequest.Builder(context)
-                            .data(element.url)
-                            .crossfade(true)
-                            .build()
-                        imageList.add(request)
-                    }
-                    post.imageRequest = imageList
-                    newList.add(post)
-                }
-            }
-            postList.value.add(newList)
-            num += 6
-        } else if (count >= (num + 6)) {
-            for (post in num until num+6) {
-                var post = allPost[post]
-                val image = post.mediaUrl.image
-                val video = post.mediaUrl.video
-                if (image.isNotEmpty()) {
-                    var imageList = mutableListOf<ImageRequest>()
-                    for (element in image) {
-                        val request = ImageRequest.Builder(context)
-                            .data(element.url)
-                            .crossfade(true)
-                            .build()
-                        imageList.add(request)
-                    }
-                    post.imageRequest = imageList
-                    newList.add(post)
-                }
-            }
-            postList.value.add(newList)
-            num += 6
-        }
-        Log.d("post", "${postList.value[1]}")
+//        var newList = mutableListOf<Post>()
+//        val count = allPost.count()
+//
+//        if (count in (num + 1) until (num + 6)) {
+//            for (post in num until count) {
+//                var post = allPost[post]
+//                val image = post.mediaUrl.image
+//                val video = post.mediaUrl.video
+//                if (image.isNotEmpty()) {
+//                    var imageList = mutableListOf<ImageRequest>()
+//                    for (element in image) {
+//                        val request = ImageRequest.Builder(context)
+//                            .data(element.url)
+//                            .crossfade(true)
+//                            .build()
+//                        imageList.add(request)
+//                    }
+//                    post.imageRequest = imageList
+//                    newList.add(post)
+//                }
+//            }
+//            postList.value.add(newList)
+//            num += 6
+//        } else if (count >= (num + 6)) {
+//            for (post in num until num+6) {
+//                var post = allPost[post]
+//                val image = post.mediaUrl.image
+//                val video = post.mediaUrl.video
+//                if (image.isNotEmpty()) {
+//                    var imageList = mutableListOf<ImageRequest>()
+//                    for (element in image) {
+//                        val request = ImageRequest.Builder(context)
+//                            .data(element.url)
+//                            .crossfade(true)
+//                            .build()
+//                        imageList.add(request)
+//                    }
+//                    post.imageRequest = imageList
+//                    newList.add(post)
+//                }
+//            }
+//            postList.value.add(newList)
+//            num += 6
+//        }
+//        Log.d("post", "${postList.value[1]}")
     }
 
-    suspend fun initUserLocation() {
-        placeFlow.collect {
-            if (it != "") {
-                place.address = it
-                xFlow.collect {
-                    place.x = it
-                    yFlow.collect {
-                        place.y = it
-                        getAllPost()
-                    }
+    private fun makeImageRequest(posts: MutableList<Post>): MutableList<Post> {
+        var newPosts = mutableListOf<Post>()
+        for (post in posts) {
+            var imageList = mutableListOf<ImageRequest>()
+            for (obj in post.mediaObj) {
+                if (obj.type == "image") {
+                    val request = ImageRequest.Builder(context)
+                        .data(obj.url)
+                        .crossfade(true)
+                        .build()
+                    imageList.add(request)
                 }
             }
+            post.imageRequest = imageList
+            newPosts.add(post)
         }
+        return newPosts
     }
 
     fun getPost(number: Int) {
@@ -181,7 +189,7 @@ class PostViewModel @Inject constructor(
             kotlin.runCatching {
                 api.getPost(number)
             }.onSuccess {
-                onePost.value = it
+//                onePost.value = it
                 Log.d("getPostSuccess", "$it")
             }.onFailure {
                 Log.d("getPostFail", "message: $it")
@@ -189,9 +197,35 @@ class PostViewModel @Inject constructor(
         }
     }
 
-    suspend fun deletePlace() {
-        dataStore.edit {
-            it[PLACE] = ""
+    fun like(listIndex: Int, postIndex: Int, post: Post) {
+        viewModelScope.launch {
+            kotlin.runCatching {
+                val like = LikeObj(username, post.username, post.createdAt)
+                api.like(like)
+            }.onSuccess {
+                postLike.value = it
+                postsList.value[listIndex][postIndex].like = it
+
+                Log.d("like", "$it")
+            }.onFailure {
+                Log.d("like", "message: $it")
+            }
+        }
+    }
+
+    fun unlike(listIndex: Int, postIndex: Int, post: Post) {
+        viewModelScope.launch {
+            kotlin.runCatching {
+                val like = LikeObj(username, post.username, post.createdAt)
+                api.unlike(like)
+            }.onSuccess {
+                postLike.value = it
+                postsList.value[listIndex][postIndex].like = it
+
+                Log.d("like", "$it")
+            }.onFailure {
+                Log.d("like", "message: $it")
+            }
         }
     }
 

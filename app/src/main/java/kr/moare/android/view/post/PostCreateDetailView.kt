@@ -1,5 +1,6 @@
 package kr.moare.android.view.post
 
+import android.os.ProxyFileDescriptorCallback
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +34,10 @@ import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.HorizontalPagerIndicator
 import com.google.accompanist.pager.rememberPagerState
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kr.moare.android.entities.Profile
+import kr.moare.android.entities.SelectedMedia
 import kr.moare.android.utils.innerShadow
 import kr.moare.android.viewmodel.common.GalleryViewModel
 
@@ -41,20 +46,23 @@ import kr.moare.android.viewmodel.common.GalleryViewModel
 fun PostCreateDetailView(
     navController: NavController,
     postCreateVM: PostCreateViewModel,
-    galleryVM: GalleryViewModel = hiltViewModel()
-//    selectedMediaList: Array<SelectedMedia>,
+//    galleryVM: GalleryViewModel
+    selectedMediaList: Array<SelectedMedia>,
 //    content: String,
 //    username: String,
 //    place: String,
 ) {
     val pagerState = rememberPagerState()
-    val color = listOf<Color>(Color.Blue, Color.Red, Color.Green, Color.Gray)
 
+    // 더보기
     var overflowed by remember { mutableStateOf(false)}
     var moreContent by remember { mutableStateOf(false) }
     var contentHeight by remember { mutableStateOf(0.dp) }
 
-    val selectedMediaList by galleryVM.selectedMediaList.collectAsState()
+    // profileImage param으로 가져오기
+    val profile by postCreateVM.profileFlow.collectAsState(initial = "")
+
+//    val selectedMediaList by galleryVM.selectedMediaList.collectAsState()
 
     val placeArr = postCreateVM.post.place.split(" ")
     val placeName =  placeArr[placeArr.lastIndex-1]
@@ -70,15 +78,13 @@ fun PostCreateDetailView(
             state = pagerState,
             modifier = Modifier
         ) { page ->
-//                if (page == 0) {
-//                    VideoPlayer(uri = Uri.parse("http://www.exit109.com/~dnn/clips/RW20seconds_1.mp4"))
-//                } else {
             if (selectedMediaList[page].type == "video") {
                 VideoPlayer(uri = selectedMediaList[page].uri)
             } else {
                 AsyncImage(
                     model = selectedMediaList[page].uri,
                     contentDescription = "image",
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
                         .innerShadow(
@@ -89,84 +95,104 @@ fun PostCreateDetailView(
                             spread = 10.dp,
                             offset = Offset(0F, 0F),
                             size = Size(1300F, 2400f)
-                        ),
-                    contentScale = ContentScale.Fit
+                        )
                 )
             }
-//                }
         }
+
         Column(
             modifier = Modifier.padding(horizontal = 12.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 5.dp)
+                modifier = Modifier.padding(bottom = 8.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .size(40.dp)
-                        .background(MaterialTheme.colors.primary)
-                )
-                Text(text = postCreateVM.username, color = Color.White, modifier = Modifier.padding(start = 10.dp))
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .size(36.dp)
+                    ) {
+                        if (profile.isNotEmpty()) {
+                            if (Json.decodeFromString<Profile>(profile).profileImage.isEmpty()) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_person),
+                                    contentDescription = "",
+                                    tint = Color.Gray,
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(Color.LightGray),
+                                )
+                            } else {
+                                AsyncImage(
+                                    model = Json.decodeFromString<Profile>(profile).profileImage,
+                                    contentDescription = "image",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = postCreateVM.username,
+                        color = Color.White,
+                        maxLines = 1,
+                        modifier = Modifier.padding(start = 10.dp)
+                    )
+                }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    HorizontalPagerIndicator(
+                        pagerState = pagerState,
+                        modifier = Modifier
+                            .padding(16.dp),
+                        activeColor = MaterialTheme.colors.primary,
+                        inactiveColor = Color.White.copy(0.8f)
+                    )
+                }
 
-                HorizontalPagerIndicator(
-                    pagerState = pagerState,
-                    modifier = Modifier
-                        .padding(16.dp),
-                    activeColor = MaterialTheme.colors.primary,
-                    inactiveColor = Color.White.copy(0.8f)
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_like),
-                    contentDescription = "like",
-                    modifier = Modifier.padding(end = 10.dp),
-                    tint = Color.White
-                )
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_comment),
-                    contentDescription = "comment",
-                    modifier = Modifier.padding(end = 10.dp),
-                    tint = Color.White
-                )
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_share),
-                    contentDescription = "share",
-                    tint = Color.White
-                )
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_like),
+                        contentDescription = "like",
+                        modifier = Modifier.padding(end = 10.dp),
+                        tint = Color.White
+                    )
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_share),
+                        contentDescription = "share",
+                        tint = Color.White
+                    )
+                }
             }
 
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(bottom = 8.dp)
-                    .fillMaxWidth()
+                modifier = Modifier.padding(bottom = 12.dp)
             ) {
-                Spacer(Modifier.weight(0.5f))
                 Text(
                     text = postCreateVM.post.sportHashtag.joinToString(" "),
                     style = MaterialTheme.typography.body2,
                     color = MaterialTheme.colors.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    textAlign = TextAlign.Right
+                    maxLines = 1
                 )
             }
 
             Row(
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .weight(0.6f)
+                        .weight(0.8f)
                         .clickable { moreContent = !moreContent }
                 ) {
                     Text(
@@ -175,48 +201,41 @@ fun PostCreateDetailView(
                         color = Color.White,
                         maxLines = if (moreContent) Int.MAX_VALUE else 1,
                         overflow = TextOverflow.Clip,
+                        modifier = Modifier.weight(0.8f, false),
                         onTextLayout = {
                             overflowed = it.hasVisualOverflow
                             contentHeight = (it.lineCount * 16).dp
-                            Log.d("content", contentHeight.toString())
                         }
                     )
 
                     if (overflowed) {
                         Text(
                             text = " ...더보기",
-                            style = MaterialTheme.typography.caption,
-//                            modifier = Modifier.padding(start = 2.dp)
+                            modifier = Modifier.weight(0.2f),
+                            style = MaterialTheme.typography.caption
                         )
+
                     }
                 }
 
-                Spacer(Modifier.weight(0.2f))
-
-                Column(
-                    Modifier.weight(0.2f)
-                ) {
-                    Text(
-                        text = placeName,
-                        style = MaterialTheme.typography.body2,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        textAlign = TextAlign.Right
-                    )
-                }
+                Text(
+                    text = placeName,
+                    style = MaterialTheme.typography.body2,
+                    color = Color.White,
+                    maxLines = 1,
+                    modifier = Modifier.weight(0.2f),
+                    textAlign = TextAlign.Right
+                )
             }
         }
     }
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun PostAddDetailViewPreview() {
-    MoareTheme {
-        PostCreateDetailView(navController = rememberNavController(), postCreateVM = hiltViewModel())
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun PostAddDetailViewPreview() {
+//    MoareTheme {
+//        PostCreateDetailView(navController = rememberNavController(), postCreateVM = hiltViewModel())
+//    }
+//}

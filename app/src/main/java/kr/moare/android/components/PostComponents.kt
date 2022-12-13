@@ -5,14 +5,12 @@ import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,40 +28,28 @@ import androidx.navigation.NavController
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.VideoFrameDecoder
+import kotlinx.coroutines.flow.MutableStateFlow
 import kr.moare.android.R
 import kr.moare.android.entities.Post
 import kr.moare.android.utils.PostNavItem
 import kr.moare.android.utils.innerShadow
+import kr.moare.android.view.post.VideoPlayer
+import kr.moare.android.viewmodel.post.PostViewModel
 
 // PostView
 fun LazyListScope.PostListView(
     postList: List<List<Post>>,
-    context: Context,
-    subNavController: NavController,
+    subNavController: NavController
 ) {
-
-//    if (postList.isNotEmpty()) {
-    items(postList) {
+    itemsIndexed(postList) { index, list ->
         Row(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier.padding(top = 2.dp)
         ) {
-            PostListItemView(subNavController = subNavController, post = it[0])
-            if (it.count() > 1) {
-                PostListItemView(subNavController = subNavController, post = it[1])
-            } else {
-                EmptyPostView()
-            }
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            modifier = Modifier.padding(top = 2.dp)
-        ) {
-            if (it.count() > 2) {
-                PostListItemView(subNavController = subNavController, post = it[2])
-                if (it.count() > 3) {
-                    PostListItemView(subNavController = subNavController, post = it[3])
+            if (list.isNotEmpty()) {
+                PostListItemView(subNavController = subNavController, post = list[0], listIndex = index, postIndex = 0)
+                if (list.count() > 1) {
+                    PostListItemView(subNavController = subNavController, post = list[1], listIndex = index, postIndex = 1)
                 } else {
                     EmptyPostView()
                 }
@@ -74,103 +60,38 @@ fun LazyListScope.PostListView(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier.padding(top = 2.dp)
         ) {
-            if (it.count() > 4) {
-                PostListItemView(subNavController = subNavController, post = it[4])
-                if (it.count() > 5) {
-                    PostListItemView(subNavController = subNavController, post = it[5])
+            if (list.count() > 2) {
+                PostListItemView(subNavController = subNavController, post = list[2], listIndex = index, postIndex = 2)
+                if (list.count() > 3) {
+                    PostListItemView(subNavController = subNavController, post = list[3], listIndex = index, postIndex = 3)
                 } else {
                     EmptyPostView()
                 }
             }
         }
 
-//        Row(
-//            horizontalArrangement = Arrangement.spacedBy(2.dp),
-//            modifier = Modifier.padding(top = 2.dp)
-//        ) {
-//            Column(
-//                verticalArrangement = Arrangement.spacedBy(2.dp),
-//                modifier = Modifier.weight(1f)
-//            ) {
-//                Box(
-//                    modifier = Modifier
-//                        .background(Color.Gray)
-//                        .fillMaxWidth()
-//                        .aspectRatio(1f)
-//                        .clickable {
-//                            subNavController.currentBackStackEntry?.savedStateHandle?.set(
-//                                "post",
-//                                it[2]
-//                            )
-//                            subNavController.navigate(PostNavItem.POSTDETAIL.name)
-//                        },
-//                    contentAlignment = Alignment.BottomStart
-//                ) {
-//                    if (it.count() > 2) {
-//                        AsyncImage(
-//                            model = it[2].imageRequest?.get(0),
-//                            placeholder = painterResource(R.drawable.ic_search),
-//                            contentDescription = "image",
-//                            contentScale = ContentScale.Crop,
-//                            modifier = Modifier.clip(RectangleShape)
-//                        )
-//                    }
-//                    PostListItemView()
-//                }
-//                Box(
-//                    modifier = Modifier
-//                        .background(Color.Gray)
-//                        .fillMaxWidth()
-//                        .aspectRatio(1f)
-//                        .clickable {
-//                            subNavController.currentBackStackEntry?.savedStateHandle?.set(
-//                                "post",
-//                                it[3]
-//                            )
-//                            subNavController.navigate(PostNavItem.POSTDETAIL.name)
-//                        },
-//                    contentAlignment = Alignment.BottomStart
-//                ) {
-//                    if (it.count() > 3) {
-//                        AsyncImage(
-//                            model = it[3].imageRequest?.get(0),
-//                            placeholder = painterResource(R.drawable.ic_search),
-//                            contentDescription = "image",
-//                            contentScale = ContentScale.Crop,
-//                            modifier = Modifier.clip(RectangleShape)
-//                        )
-//                    }
-//                    PostListItemView()
-//                }
-//            }
-//            BoxWithConstraints(
-//                modifier = Modifier.weight(1f)
-//            ) {
-//                val width = this.maxWidth
-//                Box(
-//                    modifier = Modifier
-//                        .size(width = width, height = width * 2 + 2.dp)
-//                        .background(Color.Gray)
-//                        .clickable {
-//                            subNavController.currentBackStackEntry?.savedStateHandle?.set(
-//                                "post",
-//                                it[4]
-//                            )
-//                            subNavController.navigate(PostNavItem.POSTDETAIL.name)
-//                        }
-//                ) {
-//                    VideoPlayer(Uri.parse(it[4].mediaUrl.video[0].url))
-//                }
-//            }
-//        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.padding(top = 2.dp)
+        ) {
+            if (list.count() > 4) {
+                PostListItemView(subNavController = subNavController, post = list[4], listIndex = index, postIndex = 4)
+                if (list.count() > 5) {
+                    PostListItemView(subNavController = subNavController, post = list[5], listIndex = index, postIndex = 5)
+                } else {
+                    EmptyPostView()
+                }
+            }
+        }
     }
-//    }
 }
 
 @Composable
 fun RowScope.PostListItemView(
     subNavController: NavController,
-    post: Post
+    listIndex: Int,
+    postIndex: Int,
+    post: Post,
 ) {
     Box(
         modifier = Modifier
@@ -179,29 +100,44 @@ fun RowScope.PostListItemView(
             .aspectRatio(0.5625f)
             .clickable {
                 subNavController.currentBackStackEntry?.savedStateHandle?.set(
+                    "listIndex",
+                    listIndex
+                )
+                subNavController.currentBackStackEntry?.savedStateHandle?.set(
+                    "postIndex",
+                    postIndex
+                )
+                subNavController.currentBackStackEntry?.savedStateHandle?.set(
                     "post",
                     post
                 )
-                subNavController.navigate(PostNavItem.POSTDETAIL.name+"/0")
+                subNavController.navigate(PostNavItem.POSTDETAIL.name + "/0")
             },
         contentAlignment = Alignment.BottomStart
     ) {
-        AsyncImage(
-            model = post.imageRequest?.get(0),
-            placeholder = painterResource(R.drawable.ic_search),
-            contentDescription = "image",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .clip(RectangleShape)
-                .align(Alignment.Center)
+        if (post.mediaObj.first().type == "image") {
+            AsyncImage(
+                model = post.imageRequest?.get(0),
+                placeholder = painterResource(R.drawable.ic_search),
+                contentDescription = "image",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .clip(RectangleShape)
+                    .align(Alignment.Center)
 
-        )
-        PostListItemShadowView(post)
+            )
+            PostListItemShadowView(post)
+        } else {
+            VideoPlayer(uri = Uri.parse(post.mediaObj.first().url))
+        }
     }
 }
 
 @Composable
 fun PostListItemShadowView(post: Post) {
+    val placeArr = post.place.split(" ")
+    val placeName = placeArr[placeArr.lastIndex-1]
+
     Box(
         modifier = Modifier
             .clip(RectangleShape)
@@ -231,7 +167,7 @@ fun PostListItemShadowView(post: Post) {
         )
         Spacer(modifier = Modifier.weight(0.1f))
         Text(
-            text = post.username,
+            text = placeName,
             color = Color.White,
             style = MaterialTheme.typography.body2,
             maxLines = 1,

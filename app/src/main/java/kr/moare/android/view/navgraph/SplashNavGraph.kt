@@ -27,7 +27,7 @@ fun SplashNavGraph(
     val splashNavController = rememberNavController()
 
     val login by loginVM.login.collectAsState()
-    val loading by loginVM.loading.collectAsState()
+    val loading by loginVM.meLoading.collectAsState()
 
     if (loading) {
         Box(

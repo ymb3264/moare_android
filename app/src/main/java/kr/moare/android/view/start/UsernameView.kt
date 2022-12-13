@@ -11,21 +11,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import kr.moare.android.components.CircleStartViewButton
+import kr.moare.android.components.StartViewButton
 import kr.moare.android.utils.StartNavItem
 import kr.moare.android.components.StartViewTextField
 import kr.moare.android.viewmodel.start.JoinViewModel
 
 @Composable
-fun UsernameView(navController: NavController, joinVM: JoinViewModel) {
+fun UsernameView(
+    navController: NavController,
+    joinVM: JoinViewModel
+) {
     val username by joinVM.username.collectAsState()
     val usernameBtn by joinVM.usernameBtn.collectAsState()
     val showErrorText by joinVM.showErrorText.collectAsState()
     val showErrorText2 by joinVM.showErrorText2.collectAsState()
+    val loading by joinVM.usernameLoading.collectAsState()
+    val networkError by joinVM.networkError.collectAsState()
 
-    val errorText1 = "이미 사용중인 이름입니다"
-    val errorText2 = "사용자 이름에는 영어 대/소문자, 숫자,\n밑줄(_) 및 마침표(.)만 사용할 수 있습니다."
+    val errorText1 = "사용자 이름에는 영어 대/소문자, 숫자,\n밑줄(_) 및 마침표(.)만 사용할 수 있습니다."
+    val errorText2 = "이미 사용중인 이름입니다"
 
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
@@ -49,8 +55,8 @@ fun UsernameView(navController: NavController, joinVM: JoinViewModel) {
                 fontSize = 18.sp,
                 modifier = Modifier.padding(bottom = 10.dp))
 
-            if (showErrorText || showErrorText2) {
-                Text(text = if (showErrorText) errorText2 else errorText1,
+            if (showErrorText || showErrorText2 || networkError) {
+                Text(text = if (showErrorText) errorText1 else errorText2,
                     color = Color.Red,
                     style = MaterialTheme.typography.caption,
                     modifier = Modifier.padding(bottom = 10.dp))
@@ -59,15 +65,13 @@ fun UsernameView(navController: NavController, joinVM: JoinViewModel) {
             StartViewTextField(
                 placeholder = "사용자이름",
                 text = username,
+                loading = loading,
+                textClear = { joinVM.username.value = "" },
                 onTextChange = { joinVM.checkUsername(it) }
             )
 
-            CircleStartViewButton(usernameBtn) {
-                joinVM.checkUsername2(username) {
-                    if (it) {
-                        navController.navigate(StartNavItem.SportSelect.name)
-                    }
-                }
+            StartViewButton(usernameBtn) {
+                navController.navigate(StartNavItem.SportSelect.name)
             }
             Spacer(modifier = Modifier.height(height/2))
         }

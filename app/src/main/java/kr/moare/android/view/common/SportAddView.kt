@@ -1,14 +1,18 @@
 package kr.moare.android.view.common
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.*
@@ -17,15 +21,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kr.moare.android.components.SearchBar
 import kr.moare.android.components.SelectedSportHashtag
 import kr.moare.android.components.SportSelectButton
 import kr.moare.android.entities.BottomSheet
+import kr.moare.android.utils.isScrollingUp
 import kr.moare.android.viewmodel.common.SportSelectViewModel
 import kr.moare.android.viewmodel.common.SearchViewModel
 
@@ -43,8 +53,22 @@ fun SportAddView(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val sportList by sportSelectVM.sportList.collectAsState()
+
     val newSportList by sportSelectVM.newSportList.collectAsState()
     val selectedSport by sportSelectVM.selectedSport.collectAsState()
+
+//    val scrollState = rememberLazyGridState()
+//    var scrollEnabled by remember { mutableStateOf(true) }
+//
+//    if (!scrollState.isScrollingUp()) {
+//        if (scrollState.firstVisibleItemScrollOffset == 0) {
+//            scrollEnabled = false
+//        }
+//    }
+
+    BackHandler() {
+        bottomSheet.subCloseSheet()
+    }
 
     Scaffold(
         topBar = {
@@ -82,6 +106,8 @@ fun SportAddView(
                     .weight(1f),
                     placeholder = "검색",
                     text = query,
+                    isfocused = false,
+                    textClear = { query = "" },
                     onTextChange = {
                         query = it
                         sportSelectVM.searchSport(it)
@@ -126,7 +152,8 @@ fun SportAddView(
                     columns = GridCells.Fixed(3),
                     modifier = Modifier
                         .padding(horizontal = 12.dp)
-                        .weight(0.7f)
+                        .weight(0.7f),
+//                    state = scrollState
                 ) {
                     if (query == "") {
                         items(sportList.keys.toList()) { sport ->
@@ -167,9 +194,20 @@ fun SportAddView(
 //                    }
 //                }
 //            }
-        }
+        } // column
     }
 }
+
+fun Modifier.scrollEnabled(
+    enabled: Boolean,
+) = nestedScroll(
+    connection = object : NestedScrollConnection {
+        override fun onPreScroll(
+            available: Offset,
+            source: NestedScrollSource
+        ): Offset = if(enabled) Offset.Zero else available
+    }
+)
 
 //@OptIn(ExperimentalMaterialApi::class)
 //@Preview(showBackground = true)

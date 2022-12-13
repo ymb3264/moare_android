@@ -21,14 +21,14 @@ import kr.moare.android.utils.MyProfileNavItem
 import kr.moare.android.viewmodel.profile.ProfileViewModel
 import com.google.accompanist.pager.*
 import kotlinx.coroutines.launch
-import kr.moare.android.entities.UserProfile
+import kr.moare.android.entities.Profile
 import kr.moare.android.utils.UserProfileNavItem
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun FollowListView(
     navController: NavController,
-    profile: UserProfile,
+    profile: Profile,
     page: Int
 ) {
     val tabPagerState = rememberPagerState(page)
@@ -91,9 +91,9 @@ fun FollowListView(
                 state = tabPagerState
             ) { page ->
                 when (page) {
-                    0 -> FollowList(profile.teamOrMember, navController)
-                    1 -> FollowList(profile.follower, navController)
-                    else -> FollowList(profile.following, navController)
+                    0 -> FollowList(profile.teamOrMember ?: listOf(), navController)
+                    1 -> FollowList(profile.follower ?: listOf(), navController)
+                    else -> FollowList(profile.following ?: listOf(), navController)
                 }
             }
         }

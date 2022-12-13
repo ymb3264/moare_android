@@ -1,8 +1,8 @@
 package kr.moare.android.network
 
+import android.util.Log
 import kr.moare.android.entities.MessageResponse
 import kr.moare.android.utils.network.APIRoutes
-import kr.moare.android.entities.UserDefaultPlace
 import kr.moare.android.entities.Post
 import kr.moare.android.utils.network.KtorClient
 import io.ktor.client.call.*
@@ -12,6 +12,8 @@ import io.ktor.http.*
 import io.ktor.util.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kr.moare.android.entities.LikeObj
+import kr.moare.android.entities.UserDefaultLocation
 import org.json.JSONObject
 import java.io.File
 
@@ -19,7 +21,6 @@ class PostAPI {
 
     suspend fun createPost(token: String, post: Post, files: List<File>): MessageResponse {
         val jsonPost = Json.encodeToString(post)
-
         return KtorClient.httpClient.submitFormWithBinaryData(
             url = APIRoutes.post,
             formData = formData {
@@ -39,15 +40,27 @@ class PostAPI {
         }.body()
     }
 
-    suspend fun getPosts(yearAndMonth: String, place: UserDefaultPlace, username: String, date: String): List<Post> {
+    suspend fun getPosts(yearAndMonth: String, location: UserDefaultLocation, username: String, date: String): List<Post> {
         return KtorClient.httpClient.get(APIRoutes.post) {
             url {
                 parameters.append("yearAndMonth", yearAndMonth)
-                parameters.append("x", place.x)
-                parameters.append("y", place.y)
+                parameters.append("x", location.x)
+                parameters.append("y", location.y)
                 parameters.append("username", username)
                 parameters.append("date", date)
             }
+        }.body()
+    }
+
+    suspend fun like(likeObj: LikeObj): List<String> {
+        return KtorClient.httpClient.post(APIRoutes.like) {
+            setBody(likeObj)
+        }.body()
+    }
+
+    suspend fun unlike(likeObj: LikeObj): List<String> {
+        return KtorClient.httpClient.post(APIRoutes.unlike) {
+            setBody(likeObj)
         }.body()
     }
 

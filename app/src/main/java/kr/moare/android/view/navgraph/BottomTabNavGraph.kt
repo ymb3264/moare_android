@@ -27,6 +27,7 @@ import kr.moare.android.entities.BottomSheet
 import kr.moare.android.utils.BottomTabNavItem
 import kr.moare.android.utils.MainCurrentBottomSheet
 import kr.moare.android.view.common.FindLocationView
+import kr.moare.android.view.post.LocationListView
 import kr.moare.android.view.profile.*
 import kr.moare.android.viewmodel.post.PostViewModel
 import kr.moare.android.viewmodel.profile.ProfileViewModel
@@ -46,28 +47,30 @@ fun BottomTabNavGraph(
 
     BottomSheetScaffold(
         scaffoldState = bottomSheet.mainSheetScaffoldState,
-        sheetShape = if (bottomSheet.mainSheet == MainCurrentBottomSheet.MyAccounts) RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp) else RectangleShape,
+        sheetGesturesEnabled = false,
+        sheetShape = if (bottomSheet.mainSheet == MainCurrentBottomSheet.MyAccounts || bottomSheet.mainSheet == MainCurrentBottomSheet.LocationList)
+            RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp) else RectangleShape,
         sheetContent = {
             when (bottomSheet.mainSheet) {
                 MainCurrentBottomSheet.FindLocation -> FindLocationView(
-                    bottomSheet,
-                    null,
-                    null
+                    bottomSheet, true
                 )
                 MainCurrentBottomSheet.CreateTeamProfile -> {
-                    Log.d("dsss", "ssdsf")
                     TeamProfileCreateView(
                         bottomSheet,
                         profileVM
                     )
                 }
-                MainCurrentBottomSheet.UpdateProfile -> UpdateProfileView(
+                MainCurrentBottomSheet.UpdateProfile -> ProfileUpdateView(
                     bottomSheet,
                     profileVM
                 )
                 MainCurrentBottomSheet.MyAccounts -> MyAccountsView(
                     bottomSheet,
                     profileVM
+                )
+                MainCurrentBottomSheet.LocationList -> LocationListView(
+                    bottomSheet
                 )
                 MainCurrentBottomSheet.Empty -> EmptyView()
             }

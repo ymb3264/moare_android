@@ -1,11 +1,13 @@
 package kr.moare.android.components
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +27,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -38,6 +41,8 @@ import kr.moare.android.ui.theme.MoareTheme
 fun SearchBar(
     modifier: Modifier,
     placeholder: String,
+    isfocused: Boolean = true,
+    textClear: () -> Unit = {},
     text: String, onTextChange: (String) -> Unit,
     keyboardActions: KeyboardActions = KeyboardActions()
 ) {
@@ -60,6 +65,8 @@ fun SearchBar(
         SearchTextField(modifier = Modifier,
             placeholder = placeholder,
             text = text,
+            isfocused = isfocused,
+            textClear = textClear,
             onTextChange = onTextChange,
             keyboardActions = keyboardActions
         )
@@ -67,7 +74,15 @@ fun SearchBar(
 }
 
 @Composable
-fun SearchTextField(modifier: Modifier, placeholder: String, text: String, onTextChange: (String) -> Unit, keyboardActions: KeyboardActions) {
+fun SearchTextField(
+    modifier: Modifier,
+    placeholder: String,
+    text: String,
+    isfocused: Boolean = true,
+    textClear: () -> Unit = {},
+    onTextChange: (String) -> Unit,
+    keyboardActions: KeyboardActions
+) {
     val focusRequester by remember { mutableStateOf(FocusRequester()) }
     var isFocused by remember { mutableStateOf(false) }
 
@@ -79,21 +94,72 @@ fun SearchTextField(modifier: Modifier, placeholder: String, text: String, onTex
             .focusRequester(focusRequester = focusRequester)
             .onFocusChanged { isFocused = it.isFocused },
         decorationBox = { innerTextField ->
-            if (text.isEmpty() && !isFocused) {
-                Text(text = placeholder, color = Color.Gray)
-            } else {
-                innerTextField()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.align(Alignment.CenterVertically)) {
+                    if (text.isEmpty()) {
+                        Text(text = placeholder,
+                            color = Color.Gray,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.Center),
+                            textAlign = TextAlign.Start)
+                    }
+                    innerTextField()
+                }
+
+                if (text.isNotEmpty()) {
+                    Spacer(Modifier.weight(1f))
+                    ClearButton(
+                        boxModifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(20.dp),
+                        iconModifier = Modifier.size(14.dp)
+                    ) {
+                        textClear()
+                    }
+                }
             }
         },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = keyboardActions
+        keyboardActions = keyboardActions,
     )
+
+    if (isfocused) {
+        LaunchedEffect(null) {
+            focusRequester.requestFocus()
+        }
+    }
 }
 
 @Composable
-fun SearchViewButton(
-    sport: List<String>?,
-    place: String?,
+fun ClearButton(
+    boxModifier: Modifier,
+    iconModifier: Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        boxModifier
+            .clip(CircleShape)
+            .border(BorderStroke(2.dp, Color.Gray), CircleShape)
+            .background(Color.Transparent)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_clear),
+            contentDescription = "clear",
+            modifier = iconModifier,
+            tint = Color.Gray
+        )
+    }
+}
+
+@Composable
+fun SportOrPlaceAddButton(
+    placeholder: String,
+    sport: List<String> = listOf(),
+    place: String = "",
+    placeText: String = "",
     required: Boolean = true,
     expanded: Boolean = false,
     onClick: () -> Unit,
@@ -115,7 +181,6 @@ fun SearchViewButton(
         if (required) {
             Box(
                 Modifier
-//                    .padding(vertical = 4.dp)
                     .padding(end = 8.dp)
                     .background(MaterialTheme.colors.primary)
                     .width(2.dp)
@@ -131,33 +196,20 @@ fun SearchViewButton(
                     .size(2.dp))
         }
 
-        sport?.let {
-            if (sport.isEmpty()) {
-                Text(text = "운동종목", color = Color.Gray)
-            } else {
-                for (i in 0..sport.lastIndex) {
-                    Text(text = sport[i],
-                        color = Color.Black)
-                    if (i != sport.lastIndex) {
-                        TextDivideLine()
-                    }
+        if (place.isNotEmpty()) {
+            Text(text = placeText, color = Color.Black)
+            TextDivideLine()
+            Text(text = place, color = Color.Gray, style = MaterialTheme.typography.caption)
+        } else if (sport.isNotEmpty()) {
+            for (i in 0..sport.lastIndex) {
+                Text(text = sport[i],
+                    color = Color.Black)
+                if (i != sport.lastIndex) {
+                    TextDivideLine()
                 }
-//                sport.forEachIndexed { index, sport ->
-//                    Text(text = sport,
-//                        color = Color.Black)
-//                    if (index != sport.lastIndex) {
-//                        TextDivideLine()
-//                    }
-//                }
             }
-        }
-
-        place?.let {
-            if (place.isEmpty()) {
-                Text(text = "장소", color = Color.Gray)
-            } else {
-                Text(text = place, color = Color.Black)
-            }
+        } else {
+            Text(text = placeholder, color = Color.Gray)
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -167,7 +219,6 @@ fun SearchViewButton(
             contentDescription = "arrowRight",
             tint = Color.Gray,
             modifier = Modifier
-//                .padding(end = 6.dp)
                 .size(20.dp),
         )
     }
@@ -186,72 +237,7 @@ fun TextDivideLine() {
 }
 
 @Composable
-fun CustomPlainTextField1(
-    modifier: Modifier = Modifier,
-    placeholder: String,
-    text: String,
-    expandedHeight: Dp = 36.dp,
-    required: Boolean = true,
-    expanded: Boolean = false,
-    readOnly: Boolean = false,
-    onTextChange: (String) -> Unit
-) {
-    val focusRequester by remember { mutableStateOf(FocusRequester()) }
-    var isFocused by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier.fillMaxWidth().height(36.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (required) {
-            Box(
-                Modifier
-                    .padding(start = 12.dp)
-//                    .padding(top = if (expanded) 0.dp else 18.dp)
-                    .background(MaterialTheme.colors.primary)
-                    .width(2.dp)
-                    .animateContentSize(tween(500))
-                    .height(if (expanded) expandedHeight else 5.dp)
-                    .align(Alignment.CenterVertically)
-            )
-        } else {
-            Box(
-                Modifier
-                    .padding(start = 12.dp)
-                    .background(Color.Transparent)
-                    .size(2.dp))
-        }
-
-        BasicTextField(
-            value = text,
-            onValueChange = onTextChange,
-            modifier = modifier
-                .padding(start = 8.dp, end = 12.dp)
-                .fillMaxWidth()
-                .weight(1f)
-                .focusRequester(focusRequester = focusRequester)
-                .onFocusChanged { isFocused = it.isFocused }
-                .align(Alignment.CenterVertically),
-            decorationBox = { innerTextField ->
-                if (text.isEmpty() && !isFocused) {
-                    Text(
-                        text = placeholder,
-                        style = MaterialTheme.typography.button,
-                        color = Color.Gray,
-                        modifier = Modifier.align(Alignment.CenterVertically)
-                    )
-                } else {
-                    innerTextField()
-                }
-            },
-            readOnly = readOnly,
-            singleLine = true,
-        )
-    }
-}
-
-@Composable
-fun CustomPlainTextField2(
+fun ContentTextField(
     modifier: Modifier = Modifier,
     placeholder: String,
     text: String,
@@ -330,28 +316,34 @@ fun ContentTextFieldLine(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ColumnScope.CompleteButton(
+fun CompleteButton(
     text: String,
     enabled: Boolean = false,
-    loading: Boolean = false,
+    loading: Boolean = true,
     onClick: () -> Unit
 ) {
     val color = if (enabled) MaterialTheme.colors.primary else Color.Gray
 
-    if (loading) {
-        CircularProgressIndicator()
-    } else {
-        Button(onClick = onClick,
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color.Transparent,
-                disabledBackgroundColor = Color.Transparent
-            ),
-            elevation = ButtonDefaults.elevation(
-                defaultElevation = 0.dp
-            ),
-            border = BorderStroke(1.dp, color),
-            enabled = enabled
-        ) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = Color.Transparent,
+            disabledBackgroundColor = Color.Transparent
+        ),
+        elevation = ButtonDefaults.elevation(
+            defaultElevation = 0.dp
+        ),
+        border = BorderStroke(1.dp, color),
+        enabled = enabled,
+        modifier = Modifier
+            .width(72.dp)
+            .height(40.dp)
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(28.dp).padding(bottom = 2.dp)
+            )
+        } else {
             Text(text = text, color = color)
         }
     }
@@ -370,8 +362,11 @@ fun EmptyView() {
 @Preview(showBackground = true)
 @Composable
 private fun CommonComponentsPreview() {
-    var text by remember { mutableStateOf("") }
+    var text by remember { mutableStateOf("sss") }
     MoareTheme() {
-        SearchBar(modifier = Modifier, placeholder = "test", text = text, onTextChange = { text = it })
+//        SearchBar(modifier = Modifier, placeholder = "test", text = text, onTextChange = { text = it })
+        CompleteButton(text = text) {
+            
+        }
     }
 }

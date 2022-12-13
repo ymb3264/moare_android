@@ -6,73 +6,94 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kr.moare.android.entities.Attachment
-import kr.moare.android.entities.MediaUrl
-import kr.moare.android.entities.Post
-import kr.moare.android.entities.SelectedMedia
 import kr.moare.android.network.PostAPI
-import kr.moare.android.utils.StorageHelper
-import kr.moare.android.utils.UriUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import id.zelory.compressor.Compressor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kr.moare.android.entities.*
+import kr.moare.android.utils.*
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
 class PostCreateViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val dataStore: DataStore<Preferences>,
+    @LocationDataStore private val locationDataStore: DataStore<Preferences>,
+    @UserInfoDataStore private val userInfoDataStore: DataStore<Preferences>,
     private val encryptedSharedPreferences: SharedPreferences
 ) : ViewModel() {
     val api = PostAPI()
 
     val token = encryptedSharedPreferences.getString("token", "") ?: ""
-    val username = encryptedSharedPreferences.getString("username", "") ?: ""
 
-    val PLACE = stringPreferencesKey("place")
-    val X = stringPreferencesKey("x")
-    val Y = stringPreferencesKey("y")
-    val placeFlow: Flow<String> = dataStore.data.map { preferences ->
-        preferences[PLACE] ?: ""
+    private val usernameFlow = userInfoDataStore.data.map {
+        it[PreferencesKey.USERNAME] ?: ""
     }
-    val xFlow: Flow<String> = dataStore.data.map { preferences ->
-        preferences[X] ?: ""
+    val profileFlow = userInfoDataStore.data.map {
+        it[PreferencesKey.PROFILE] ?: ""
     }
-    val yFlow: Flow<String> = dataStore.data.map { preferences ->
-        preferences[Y] ?: ""
+    var username = ""
+
+    private val currentLocationFlow = locationDataStore.data.map {
+        it[PreferencesKey.CURRENTLOCATION] ?: ""
+    }
+    private val locationListFlow = locationDataStore.data.map {
+        it[PreferencesKey.LOCATIONLIST] ?: setOf()
     }
 
-    var post = Post(username, "", "", MediaUrl(listOf(), listOf()),
-        "", listOf(), "", "", "")
+    val content = MutableStateFlow("")
+    val loading = MutableStateFlow(false)
+    val completeBtn = MutableStateFlow(false)
+
+    var post = Post("", "", "", "", listOf(), "", listOf(), "", "", "", null)
 
     init {
         viewModelScope.launch {
-            placeFlow.collect() {
-                if (it != "") {
-                    post.place = it
+            currentLocationFlow.collect { current ->
+                if (current.isNotEmpty()) {
+                    val location = Json.decodeFromString<UserDefaultLocation>(current)
+
+                    post.place = location.address
+                    post.x = location.x
+                    post.y = location.y
                 }
-            }
-            xFlow.collect() {
-                post.x = it
-            }
-            yFlow.collect() {
-                post.y = it
+                coroutineContext.job.cancel()
             }
         }
-        Log.d("postCreate", "postCreate")
+        viewModelScope.launch {
+            usernameFlow.collect {
+                username = it
+                post.username = it
+                coroutineContext.job.cancel()
+            }
+        }
     }
 
-    fun createPost(content: String, selectedMediaList: MutableList<SelectedMedia>) {
+    fun createPost(selectedMediaList: MutableList<SelectedMedia>, completion: () -> Unit) {
+        loading.value = true
         viewModelScope.launch {
             kotlin.runCatching {
+                val yearMonthFormatter = SimpleDateFormat("yyyy-MM", Locale.KOREA)
+                val nowFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.KOREA)
+
+                post.yearAndMonth = yearMonthFormatter.format(Date())
+                post.createdAt = nowFormatter.format(Date())
+
                 val fileList = mutableListOf<File>()
                 selectedMediaList.forEach { media ->
                     if (media.type == "video") {
@@ -85,13 +106,49 @@ class PostCreateViewModel @Inject constructor(
                         fileList.add(compressedFile)
                     }
                 }
+
                 api.createPost(token, post, fileList)
             }.onSuccess {
+                loading.value = false
+
+                // post reload
+                viewModelScope.launch {
+                    currentLocationFlow.collect { current ->
+                        if (current.isNotEmpty()) {
+                            val location = Json.decodeFromString<UserDefaultLocation>(current)
+
+                            locationDataStore.edit {
+                                it[PreferencesKey.CURRENTLOCATION] = ""
+                            }
+                            locationDataStore.edit {
+                                it[PreferencesKey.CURRENTLOCATION] = current
+                            }
+                        }
+                        coroutineContext.job.cancel()
+                    }
+                }
+
+                // userPost reload
+                viewModelScope.launch {
+                    usernameFlow.collect { username ->
+                        userInfoDataStore.edit {
+                            it[PreferencesKey.USERNAME] = ""
+                        }
+                        userInfoDataStore.edit {
+                            it[PreferencesKey.USERNAME] = username
+                        }
+                        coroutineContext.job.cancel()
+                    }
+                }
+
+                completion()
                 Log.d("addSuccess", "$it")
             }.onFailure {
+                loading.value = false
                 Log.d("addFail", "message: $it")
             }
         }
+
         selectedMediaList[0]?.let { video ->
             // check bitrate
 //            val mediaMetadataRetriever = MediaMetadataRetriever()
@@ -161,5 +218,14 @@ class PostCreateViewModel @Inject constructor(
 //                )
             }
         }
+    }
+
+    fun checkContent(selectedMediaList: MutableList<SelectedMedia>): Boolean {
+        return selectedMediaList.isEmpty() && post.sportHashtag.isEmpty() && post.content.isEmpty()
+    }
+
+    fun checkCompleteBtn(selectedMediaList: MutableList<SelectedMedia>) {
+        completeBtn.value = selectedMediaList.isNotEmpty() &&
+                post.sportHashtag.isNotEmpty() && post.content.isNotEmpty() && post.place.isNotEmpty()
     }
 }

@@ -1,5 +1,6 @@
 package kr.moare.android.view.navgraph
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
@@ -9,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.*
 import kr.moare.android.entities.BottomSheet
-import kr.moare.android.entities.MediaUrl
 import kr.moare.android.entities.Post
 import kr.moare.android.utils.*
 import kr.moare.android.view.message.MessageListView
@@ -22,9 +22,9 @@ import kr.moare.android.viewmodel.profile.ProfileViewModel
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
-import kr.moare.android.entities.UserProfile
+import kr.moare.android.entities.Profile
+import kr.moare.android.entities.SelectedMedia
 import kr.moare.android.view.post.*
-import kr.moare.android.viewmodel.profile.UserProfileViewModel
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterialApi::class)
 @Composable
@@ -177,10 +177,11 @@ fun PostNavGraph(
 //            deepLinks = listOf(navDeepLink { uriPattern = "test://test/{number}" })
         ) {
             val post = postNavController.previousBackStackEntry?.savedStateHandle?.get<Post>("post")
-                ?: Post("", "", "", MediaUrl(listOf(), listOf()),
-                    "", mutableListOf(), "", "", "")
+                ?: Post("", "", "", "", listOf(), "", listOf(), "", "", "", null)
+            val listIndex = postNavController.previousBackStackEntry?.savedStateHandle?.get<Int>("listIndex") ?: 0
+            val postIndex = postNavController.previousBackStackEntry?.savedStateHandle?.get<Int>("postIndex") ?: 0
             val number = it.arguments?.getInt("number")
-            PostDetailView(navController = postNavController, post = post, number = number)
+            PostDetailView(navController = postNavController, postVM = postVM, post = post, listIndex = listIndex, postIndex = postIndex)
         }
 
         composable(
@@ -239,9 +240,8 @@ fun PostNavGraph(
             }
         ) {
             val page = it.arguments?.getInt("page") ?: 0
-            val profile = postNavController.previousBackStackEntry?.savedStateHandle?.get<UserProfile>("profile") ?:
-                UserProfile("", "", listOf(), "", "", "",
-                "", false, listOf(), listOf(), listOf())
+            val profile = postNavController.previousBackStackEntry?.savedStateHandle?.get<Profile>("profile") ?:
+            Profile(createdAt = "", username = "", sportHashtag = listOf(), name = "", profileImage = "", content = "", place = "", isTeam = false)
             FollowListView(
                 navController = postNavController,
                 profile = profile,
@@ -304,8 +304,8 @@ fun PostCreateNavGraph(
                 }
             }
         ) {
-//            val selectedMediaList = addPostNavController.previousBackStackEntry?.savedStateHandle?.get<Array<SelectedMedia>>("mediaUriList") ?: arrayOf()
-            PostCreateDetailView(postCreateNavController, postCreateVM)
+            val selectedMediaList = postCreateNavController.previousBackStackEntry?.savedStateHandle?.get<Array<SelectedMedia>>("selectedMediaList") ?: arrayOf()
+            PostCreateDetailView(postCreateNavController, postCreateVM, selectedMediaList)
         }
     }
 }
@@ -380,9 +380,8 @@ fun MyProfileNavGraph(
             }
         ) {
             val page = it.arguments?.getInt("page") ?: 0
-            val profile = myProfileNavController.previousBackStackEntry?.savedStateHandle?.get<UserProfile>("profile") ?:
-            UserProfile("", "", listOf(), "", "", "",
-                "", false, listOf(), listOf(), listOf())
+            val profile = myProfileNavController.previousBackStackEntry?.savedStateHandle?.get<Profile>("profile") ?:
+            Profile(createdAt = "", username = "", sportHashtag = listOf(), name = "", profileImage = "", content = "", place = "", isTeam = false)
             FollowListView(
                 navController = myProfileNavController,
                 profile = profile,

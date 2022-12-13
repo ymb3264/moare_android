@@ -1,7 +1,9 @@
 package kr.moare.android.view.start
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -13,18 +15,15 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import kr.moare.android.components.CircleStartViewButton
 import kr.moare.android.components.SearchBar
 import kr.moare.android.components.SelectedSportHashtag
 import kr.moare.android.components.SportSelectButton
+import kr.moare.android.components.StartViewButton
 import kr.moare.android.utils.SplashNavItem
 import kr.moare.android.viewmodel.common.SportSelectViewModel
 import kr.moare.android.viewmodel.start.JoinViewModel
@@ -37,16 +36,13 @@ fun SportSelectView(
     joinVM: JoinViewModel,
     sportSelectVM: SportSelectViewModel = hiltViewModel()
 ) {
-    var query by remember { mutableStateOf("") }
-
     val loading by sportSelectVM.loading.collectAsState()
     val sportList by sportSelectVM.sportList.collectAsState()
     val newSportList by sportSelectVM.newSportList.collectAsState()
     val selectedSport by sportSelectVM.selectedSport.collectAsState()
     val showAlert by joinVM.showAlert.collectAsState()
 
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
+    var query by remember { mutableStateOf("") }
 
     Column(
       modifier = Modifier
@@ -67,6 +63,7 @@ fun SportSelectView(
             .padding(bottom = 8.dp),
             placeholder = "검색",
             text = query,
+            textClear = { query = "" },
             onTextChange = {
                 query = it
                 sportSelectVM.searchSport(it)
@@ -81,7 +78,12 @@ fun SportSelectView(
             horizontalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             items(selectedSport) {
-                SelectedSportHashtag(it)
+//                SelectedSportHashtag(it)
+                Text(text = it,
+                    modifier = Modifier
+                        .padding(start = 10.dp),
+                    color = MaterialTheme.colors.primary,
+                    style = MaterialTheme.typography.caption)
             }
         }
 
@@ -112,38 +114,7 @@ fun SportSelectView(
             }
         }
 
-//        Button(onClick = {
-//                         joinVM.join()
-//        },
-//            colors = ButtonDefaults.buttonColors(
-//                backgroundColor = Color.White
-//            ),
-//            elevation = ButtonDefaults.elevation(
-//                defaultElevation = 0.dp
-//            ),
-//            border = BorderStroke(1.dp, MaterialTheme.colors.primary),
-//            shape = RoundedCornerShape(50),
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .size(height = 65.dp, width = 0.dp)
-//                .padding(
-//                    start = 10.dp,
-//                    end = 10.dp,
-//                    top = 10.dp,
-//                    bottom = 10.dp
-//                )
-//        ) {
-//            Text(text = "다음", fontSize = 15.sp, color = Color.Gray)
-//        }
-
-//        StartViewButton(
-//            modifier = Modifier.padding(vertical = 12.dp),
-//            text = "다음",
-//            onClick = { joinVM.join() },
-//            enabled = false,
-//            width = screenWidth
-//        )
-        CircleStartViewButton(
+        StartViewButton(
             modifier = Modifier.padding(vertical = 12.dp),
             enabled = true
         ) {

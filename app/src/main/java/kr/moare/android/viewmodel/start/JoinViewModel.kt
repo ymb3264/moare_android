@@ -6,6 +6,10 @@ import android.util.Log
 import android.util.Patterns
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kr.moare.android.entities.JoinAccount
@@ -13,86 +17,116 @@ import kr.moare.android.network.JoinAPI
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kr.moare.android.utils.PreferencesKey
+import kr.moare.android.utils.UserInfoDataStore
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.regex.Pattern
 import javax.inject.Inject
 
 @HiltViewModel
 class JoinViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val encryptedSharedPreferences: SharedPreferences
+    private val encryptedSharedPreferences: SharedPreferences,
+    @UserInfoDataStore private val userInfoDataStore: DataStore<Preferences>,
 ) : ViewModel() {
     val api: JoinAPI = JoinAPI()
+
+    var account = JoinAccount(email = "", createdAt = "", username = "", password = "")
     var servercode = ""
-    var account = JoinAccount(email = "", createdAt = "", password = "", username = "", sportHashtag = mutableListOf<String>())
 
-    var showErrorText = MutableStateFlow(false)
+    val email = MutableStateFlow("")
+    val pwd = MutableStateFlow("")
+    val username = MutableStateFlow("")
+
+    val emailBtn = MutableStateFlow(false)
+    val pwdBtn = MutableStateFlow(false)
+    val usernameBtn = MutableStateFlow(false)
+
+    val showErrorText = MutableStateFlow(false)
+    val showErrorText2 = MutableStateFlow(false)
+    val networkError = MutableStateFlow(false)
+
+    val showAlert = MutableStateFlow(false)
+
+    val loading = MutableStateFlow(false)
+    val usernameLoading = MutableStateFlow(false)
+
     val joinSuccess = MutableStateFlow(false)
-
-    var email = MutableStateFlow("")
-    var emailBtn = MutableStateFlow(false)
-    var pwd = MutableStateFlow("")
-    var pwdBtn = MutableStateFlow(false)
-    var username = MutableStateFlow("")
-    var usernameBtn = MutableStateFlow(false)
-    var showErrorText2 = MutableStateFlow(false)
-
-    var showAlert = MutableStateFlow(false)
 
     private val pattern = Patterns.EMAIL_ADDRESS
 
     // api
-    fun getEmailCode() {
+    fun getEmailCode(goNext: () -> Unit) {
+        loading.value = true
         viewModelScope.launch {
             kotlin.runCatching {
+                account.email = email.value
                 api.getEmailCode(account)
             }.onSuccess {
-                Log.d("success", "$it")
+                resetError()
+                loading.value = false
                 servercode = it.serverCode.toString()
+                goNext()
+                Log.d("success", "$it")
             }.onFailure {
+                loading.value = false
+
                 Log.d("fail", "$it")
             }
         }
     }
 
-    fun checkUsername2(username: String, goNext: (Boolean) -> Unit = {}) {
+    fun checkUsername2(username: String) {
+        usernameLoading.value = true
         viewModelScope.launch {
             kotlin.runCatching {
                 api.checkUsername(username)
             }.onSuccess {
+                usernameLoading.value = false
+
                 if (it.message == "available") {
-                    showErrorText2.value = false
                     usernameBtn.value = true
                     account.username = username
-                    goNext(true)
                 } else {
                     showErrorText2.value = true
                     usernameBtn.value = false
                 }
                 Log.d("success", "$it")
             }.onFailure {
+                usernameLoading.value = false
                 Log.d("fail", "$it")
             }
         }
     }
 
-    fun join(sportSelected: Boolean, showSplash: () -> Unit) {
-        if (account.sportHashtag.isEmpty() && !sportSelected) {
-            showAlert.value = true
-        } else {
+    fun join(confirmed: Boolean, showSplash: () -> Unit) {
+        if (confirmed) {
+            showSplash()
+
+            val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.KOREA)
+            account.createdAt = formatter.format(Date())
+
             viewModelScope.launch {
                 kotlin.runCatching {
-                    showSplash()
                     api.join(account)
-                }.onSuccess {
-                    encryptedSharedPreferences.edit().putString("token", it.token).apply()
-                    encryptedSharedPreferences.edit().putString("username", it.username).apply()
-                    joinSuccess.emit(true)
-                    Log.d("success", "$it")
+                }.onSuccess { response ->
+                    joinSuccess.value = true
+
+                    encryptedSharedPreferences.edit().putString("token", response.token).apply()
+                    userInfoDataStore.edit {
+                        it[PreferencesKey.USERNAME] = response.username
+                    }
+
+                    Log.d("success", "$response")
                 }.onFailure {
                     Log.d("fail", "$it")
                 }
             }
+        } else {
+            showAlert.value = true
         }
     }
 
@@ -103,14 +137,13 @@ class JoinViewModel @Inject constructor(
         if (emailBtn.value) showErrorText.value = false
     }
 
-    fun checkCode(clientCode: String, goNext: (Boolean) -> Unit) {
+    fun checkCode(clientCode: String, goNext: () -> Unit) {
         if (clientCode == servercode) {
             showErrorText.value = false
-            goNext(true)
-            Log.d("checkcode", "true")
+            goNext()
         } else {
+            resetError()
             showErrorText.value = true
-            Log.d("checkcode", "false")
         }
     }
 
@@ -135,22 +168,41 @@ class JoinViewModel @Inject constructor(
         showErrorText.value = !isValid
     }
 
-    fun addPwd(goNext: (Boolean) -> Unit) {
+    fun checkSecondPwd(pwdForCheck: String) {
+        showErrorText2.value = pwd.value != pwdForCheck
+        pwdBtn.value = !showErrorText2.value
+    }
+
+    fun addPwd(goNext: () -> Unit) {
         if (!showErrorText.value) {
             account.password = pwd.value
-            goNext(true)
+            goNext()
         }
     }
 
     fun checkUsername(username: String) {
         this.username.value = username
+        usernameBtn.value = false
         showErrorText2.value = false
 
-        val pwdRegex1 =
+        val usernameRegex =
             "^[A-Za-z_.[0-9]]{1,30}$"
-        val isValid = Pattern.matches(pwdRegex1, username)
+        showErrorText.value = !Pattern.matches(usernameRegex, username)
 
-        usernameBtn.value = isValid
-        showErrorText.value = !isValid
+        if (!showErrorText.value) {
+            checkUsername2(username)
+        }
+    }
+
+    fun showNetworkError() {
+        showErrorText.value = false
+        showErrorText2.value = false
+        networkError.value = true
+    }
+
+    fun resetError() {
+        showErrorText.value = false
+        showErrorText2.value = false
+        networkError.value = false
     }
 }

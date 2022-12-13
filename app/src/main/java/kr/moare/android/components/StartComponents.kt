@@ -16,33 +16,123 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kr.moare.android.R
 import kr.moare.android.ui.theme.MoareTheme
 
 @Composable
-fun StartViewTextField(placeholder: String, text: String, onTextChange: (String) -> Unit) {
+fun StartViewTextField(
+    placeholder: String,
+    text: String,
+    loading: Boolean = false,
+    textClear: () -> Unit = {},
+    onTextChange: (String) -> Unit
+) {
         TextField(
             value = text,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp)
-            .padding(bottom = 10.dp)
-        ,
-        colors = TextFieldDefaults.textFieldColors(
-            backgroundColor = Color.White,
-            focusedIndicatorColor = Color.Gray,
-        ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp)
+                .padding(bottom = 10.dp),
+            colors = TextFieldDefaults.textFieldColors(
+                backgroundColor = Color.White,
+                focusedIndicatorColor = Color.Gray,
+            ),
             placeholder = {
                 Text(
                     modifier = Modifier.fillMaxWidth(),
                     text = placeholder,
-//                    textAlign = TextAlign.Center
                 )
             },
             onValueChange = onTextChange,
-//            textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center)
+            trailingIcon = {
+                if (text.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(28.dp),
+                                color = Color.Gray
+                            )
+                        } else {
+                            Box(modifier = Modifier.size(28.dp))
+                        }
+
+                        ClearButton(
+                            boxModifier = Modifier
+                                .padding(end = 8.dp, start = 8.dp)
+                                .size(20.dp),
+                            iconModifier = Modifier.size(14.dp)
+                        ) {
+                            textClear()
+                        }
+                    }
+                }
+            }
         )
+}
+
+@Composable
+fun PwdTextField(
+    placeholder: String,
+    text: String,
+    textClear: () -> Unit = {},
+    onTextChange: (String) -> Unit
+) {
+    var visibility by remember { mutableStateOf(false) }
+
+    TextField(
+        value = text,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp)
+            .padding(bottom = 10.dp),
+        colors = TextFieldDefaults.textFieldColors(
+            backgroundColor = Color.White,
+            focusedIndicatorColor = Color.Gray,
+        ),
+        placeholder = {
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = placeholder,
+            )
+        },
+        onValueChange = onTextChange,
+        trailingIcon = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (text.isNotEmpty()) {
+                    ClearButton(
+                        boxModifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(20.dp),
+                        iconModifier = Modifier.size(14.dp)
+                    ) {
+                        textClear()
+                    }
+                }
+
+                IconButton(onClick = { visibility = !visibility }) {
+                    if (visibility) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_visibility),
+                            contentDescription = "visibility"
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_visibility_off),
+                            contentDescription = "visibility_off"
+                        )
+                    }
+                }
+            }
+        },
+        visualTransformation = if (visibility) VisualTransformation.None else PasswordVisualTransformation()
+    )
 }
 
 @Composable
@@ -118,8 +208,9 @@ fun ButtonCircle(enabled: Boolean, width: Int = 0, delayMillis: Int = 100) {
 }
 
 @Composable
-fun CircleStartViewButton(
+fun StartViewButton(
     enabled: Boolean = false,
+    loading: Boolean = false,
     modifier: Modifier = Modifier,
     checkEmail: () -> Unit = {},
     onClick: () -> Unit
@@ -129,7 +220,8 @@ fun CircleStartViewButton(
         .border(
             BorderStroke(
                 2.dp,
-                if (enabled) MaterialTheme.colors.primary else Color.Gray),
+                if (enabled) MaterialTheme.colors.primary else Color.Gray
+            ),
             CircleShape
         )
         .background(Color.Transparent)
@@ -137,8 +229,13 @@ fun CircleStartViewButton(
         .clickable {
             checkEmail()
             if (enabled) onClick()
+        },
+        contentAlignment = Alignment.Center
+    ) {
+        if (loading) {
+            CircularProgressIndicator()
         }
-    )
+    }
 }
 
 @Composable
@@ -160,7 +257,8 @@ fun SelectedSportHashtag(sport: String) {
 private fun FeaturedPostDarkPreview() {
     var text by remember { mutableStateOf("") }
     MoareTheme() {
-//        StartViewTextField(placeholder = "test", text = text, onTextChange = { text = it })
-        StartViewButton(text = text, enabled = false)
+        StartViewTextField(placeholder = "test", text = text, onTextChange = { text = it })
+//        StartViewButton(enabled = true, loading = true) { text = "" }
+//        PwdTextField(placeholder = "password", text = text, onTextChange = { text = it })
     }
 }

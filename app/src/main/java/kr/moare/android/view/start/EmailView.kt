@@ -13,7 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import kr.moare.android.components.CircleStartViewButton
+import kr.moare.android.components.StartViewButton
 import kr.moare.android.ui.theme.MoareTheme
 import kr.moare.android.components.StartViewTextField
 import kr.moare.android.utils.StartNavItem
@@ -25,13 +25,10 @@ fun EmailView(
     navController: NavController,
     joinVM: JoinViewModel
 ) {
-//    var email by remember { mutableStateOf("") }
     val email by joinVM.email.collectAsState()
     val emailBtn by joinVM.emailBtn.collectAsState()
+    val loading by joinVM.loading.collectAsState()
     val showErrorText by joinVM.showErrorText.collectAsState()
-
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
 
     BoxWithConstraints(
         modifier = Modifier
@@ -70,27 +67,20 @@ fun EmailView(
             StartViewTextField(
                 placeholder = "이메일",
                 text = email,
+                textClear = { joinVM.email.value = "" },
                 onTextChange = {
                     joinVM.checkEmail(it)
                 }
             )
-//            StartViewButton(
-//                text = "다음",
-//                onClick = {
-//                    joinVM.account.email = email
-//                    joinVM.getEmailCode()
-//                    navController.navigate(StartNavItem.Auth.name)
-//                },
-//                enabled = emailBtn,
-//                width = screenWidth
-//            )
-            CircleStartViewButton(
+
+            StartViewButton(
                 enabled = emailBtn,
+                loading = loading,
                 checkEmail = { joinVM.showErrorText.value = !emailBtn }
             ) {
-                joinVM.account.email = email
-                joinVM.getEmailCode()
-                navController.navigate(StartNavItem.Auth.name)
+                joinVM.getEmailCode {
+                    navController.navigate(StartNavItem.Auth.name)
+                }
             }
             Spacer(modifier = Modifier.height(height/2))
         }

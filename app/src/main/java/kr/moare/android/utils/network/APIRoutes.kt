@@ -1,8 +1,8 @@
 package kr.moare.android.utils.network
 
 object APIRoutes {
-    private const val host = "http://10.0.2.2:8080"
-//    private const val host = "http://moare-test.us-east-1.elasticbeanstalk.com"
+//    private const val host = "http://10.0.2.2:8080"
+    private const val host = "https://www.moare.kr"
 
     // join
     const val join = "$host/join"
@@ -13,10 +13,12 @@ object APIRoutes {
     // login
     const val login = "$host/login"
 
-    // post
+    // post, like
     const val post = "$host/post"
     const val userPost = "$post/user"
     const val onePost = "$post/a"
+    const val like = "$post/like"
+    const val unlike = "$post/unlike"
 
     // profile
     const val profile = "$host/profile"
@@ -25,12 +27,12 @@ object APIRoutes {
     const val myAccounts = "$profile/accounts"
 
     // follow
-    const val follow = "$host/follow"
+    const val follow = "$host/follow/add"
+    const val unfollow = "$host/follow/delete"
 
     // search
-    const val search = "$host/search"
-    const val hashtag = "$search/hashtag"
-    const val searchUser = "$search/username"
+    const val hashtag = "$host/search/hashtag"
+    const val searchUser = "$host/search/username"
 
     // location
     private const val kakaoLocal = "https://dapi.kakao.com/v2/local"

@@ -11,18 +11,20 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import kr.moare.android.components.CircleStartViewButton
+import kr.moare.android.components.StartViewButton
 import kr.moare.android.components.StartViewTextField
 import kr.moare.android.utils.StartNavItem
 import kr.moare.android.viewmodel.start.JoinViewModel
 
 @Composable
 fun AuthView(navController: NavController, joinVM: JoinViewModel) {
-    var clientCode by remember { mutableStateOf("") }
     val showErrorText by joinVM.showErrorText.collectAsState()
+    val networkError by joinVM.networkError.collectAsState()
 
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
+    var clientCode by remember { mutableStateOf("") }
+
+    val errorText1 = "인증번호가 틀립니다."
+    val errorText2 = "인증번호 전송에 실패하였습니다.\n다시 시도해주세요."
 
     BoxWithConstraints(
         modifier = Modifier
@@ -45,7 +47,7 @@ fun AuthView(navController: NavController, joinVM: JoinViewModel) {
                 modifier = Modifier.padding(bottom = 12.dp)
             )
             Text(
-                text = "ㅇㅇㅇ@ㅇㅇㅇ으로 전송된\n인증 코드를 입력하세요.",
+                text = "${joinVM.email.value}으로 전송된\n인증 코드를 입력하세요.",
                 style = MaterialTheme.typography.caption,
             )
 
@@ -64,32 +66,24 @@ fun AuthView(navController: NavController, joinVM: JoinViewModel) {
                 fontSize = 12.sp)
             }
 
-            if (showErrorText) {
-                Text(text = "인증번호가 틀립니다.",
+            if (showErrorText || networkError) {
+                Text(text = if (showErrorText) errorText1 else errorText2,
                     color = Color.Red,
                     style = MaterialTheme.typography.caption,
                     modifier = Modifier.padding(bottom = 10.dp)
                 )
             }
 
-            StartViewTextField(placeholder = "인증 코드", text = clientCode, onTextChange = { clientCode = it })
-//            StartViewButton(
-//                text = "다음",
-//                onClick = {
-//                    joinVM.checkCode(clientCode) {
-//                        if (it) {
-//                            navController.navigate(StartNavItem.Pwd.name)
-//                        }
-//                    }
-//                },
-//                enabled = clientCode.isNotEmpty(),
-//                width = screenWidth
-//            )
-            CircleStartViewButton(enabled = clientCode.isNotEmpty()) {
+            StartViewTextField(
+                placeholder = "인증 코드",
+                text = clientCode,
+                textClear = { clientCode = "" },
+                onTextChange = { clientCode = it }
+            )
+
+            StartViewButton(enabled = clientCode.isNotEmpty()) {
                 joinVM.checkCode(clientCode) {
-                    if (it) {
-                        navController.navigate(StartNavItem.Pwd.name)
-                    }
+                    navController.navigate(StartNavItem.Pwd.name)
                 }
             }
 

@@ -5,6 +5,7 @@ plugins {
     id 'kotlin-kapt'
     id 'dagger.hilt.android.plugin'
     id 'kotlin-parcelize'
+    id "com.google.protobuf" version "0.8.17"
 }
 
 android {
@@ -12,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId "kr.moare.android"
-        minSdk 26
+        minSdk 24
         targetSdk 32
         versionCode 1
         versionName "1.0"
@@ -114,6 +115,7 @@ dependencies {
 
     // datastore
     implementation 'androidx.datastore:datastore-preferences:1.0.0'
+    implementation  "com.google.protobuf:protobuf-javalite:3.19.4"
 
     // Stream Chat
     implementation "io.getstream:stream-chat-android-compose:5.8.0"
@@ -132,4 +134,20 @@ dependencies {
 
     // video compress
     implementation 'com.github.AbedElazizShe:LightCompressor:1.2.0'
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.19.4"
+    }
+
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java {
+                    option 'lite'
+                }
+            }
+        }
+    }
 }

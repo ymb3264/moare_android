@@ -29,7 +29,6 @@ class GalleryViewModel @Inject constructor(
 
     init {
         loadAttachments()
-        Log.d("gallery", "galleryii")
     }
 
     fun loadAttachments() {

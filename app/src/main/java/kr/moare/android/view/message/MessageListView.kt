@@ -14,93 +14,13 @@ fun MessageListView(navController: NavController) {
     val context = LocalContext.current
     ChatTheme {
         ChannelsScreen(
-            title = "mo_test1",
-            //                    title = stringResource(id = R.string.app_name),
+            title = "메세지",
             onItemClick = { channel ->
                 context.startActivity(MessagesActivity.getIntent(context, channel.cid))
             },
             onBackPressed = { navController.popBackStack() }
-            //                    onBackPressed = { finish() }
         )
     }
-//    Scaffold(
-//        topBar = {
-//            TopAppBar(
-//                title = { Text("") },
-//                navigationIcon = {
-//                    IconButton(onClick = { /*TODO*/ }) {
-//                        Icon(
-//                            painter = painterResource(id = R.drawable.ic_arrow_back),
-//                            contentDescription = "goBackIcon"
-//                        )
-//                    }
-//                }
-//            )
-//        }
-//    ) { padding ->
-//        Column(
-//            modifier = Modifier
-//                .padding(padding)
-//                .padding(horizontal = 12.dp),
-//        ) {
-//            Row(
-//                modifier = Modifier
-//                    .padding(top = 8.dp)
-//                    .clickable { navController.navigate(MessageNavItem.MESSAGE.name) }
-//                ,
-//                verticalAlignment = Alignment.CenterVertically
-//            ) {
-//                Box(modifier = Modifier
-//                    .padding(end = 8.dp)
-//                    .clip(CircleShape)
-//                    .size(60.dp)
-//                    .background(Moare)
-//                )
-//                Column(
-//
-//                ) {
-//                    Text("moare",
-//                        style = MaterialTheme.typography.subtitle1,
-//                    )
-//                    Row(
-//                        modifier = Modifier.padding(top = 4.dp),
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        Text("hello...")
-//                        Spacer(modifier = Modifier.weight(1f))
-//                        Text(text = "오전 08:34", style = MaterialTheme.typography.caption)
-//                    }
-//                }
-//            }
-//            Row(
-//                modifier = Modifier
-//                    .padding(top = 8.dp),
-//                verticalAlignment = Alignment.CenterVertically
-//            ) {
-//                Box(modifier = Modifier
-//                    .padding(end = 8.dp)
-//                    .clip(CircleShape)
-//                    .size(60.dp)
-//                    .background(Moare)
-//                )
-//                Column(
-//
-//                ) {
-//                    Text("moare",
-//                        style = MaterialTheme.typography.subtitle1,
-//                    )
-//                    Row(
-//                        modifier = Modifier.padding(top = 4.dp),
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        Text("hello...")
-//                        Spacer(modifier = Modifier.weight(1f))
-//                        Text(text = "오전 08:34", style = MaterialTheme.typography.caption)
-//                    }
-//                }
-//            }
-//        }
-//    }
 }
 
 @Preview(showBackground = true)

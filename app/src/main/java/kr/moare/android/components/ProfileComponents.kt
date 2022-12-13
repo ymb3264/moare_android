@@ -1,23 +1,28 @@
 package kr.moare.android.components
 
 import android.net.Uri
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -108,10 +113,89 @@ fun ProfileImageAddButton(
 }
 
 @Composable
+fun ProfileTextField(
+    modifier: Modifier = Modifier,
+    placeholder: String,
+    text: String,
+    expandedHeight: Dp = 36.dp,
+    required: Boolean = true,
+    expanded: Boolean = false,
+    readOnly: Boolean = false,
+    loading: Boolean = false,
+    onTextChange: (String) -> Unit
+) {
+    val focusRequester by remember { mutableStateOf(FocusRequester()) }
+    var isFocused by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(36.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (required) {
+            Box(
+                Modifier
+                    .padding(start = 12.dp)
+//                    .padding(top = if (expanded) 0.dp else 18.dp)
+                    .background(MaterialTheme.colors.primary)
+                    .width(2.dp)
+                    .animateContentSize(tween(500))
+                    .height(if (expanded) expandedHeight else 5.dp)
+                    .align(Alignment.CenterVertically)
+            )
+        } else {
+            Box(
+                Modifier
+                    .padding(start = 12.dp)
+                    .background(Color.Transparent)
+                    .size(2.dp))
+        }
+
+        BasicTextField(
+            value = text,
+            onValueChange = onTextChange,
+            modifier = modifier
+                .padding(start = 8.dp, end = 12.dp)
+                .fillMaxWidth()
+                .weight(1f)
+                .focusRequester(focusRequester = focusRequester)
+                .onFocusChanged { isFocused = it.isFocused }
+                .align(Alignment.CenterVertically),
+            decorationBox = { innerTextField ->
+                if (text.isEmpty() && !isFocused) {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.button,
+                        color = Color.Gray,
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+                } else {
+                    Row() {
+                        innerTextField()
+                        if (loading) {
+                            Spacer(modifier = Modifier.weight(1f))
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.Gray
+                            )
+                        }
+                    }
+
+                }
+            },
+            readOnly = readOnly,
+            singleLine = true,
+        )
+    }
+}
+
+@Composable
 fun RowScope.ProfileButton(
     modifier: Modifier,
     text: String,
     enabled: Boolean = true,
+    loading: Boolean = false,
     onClick: () -> Unit
 ) {
     Button(
@@ -127,12 +211,16 @@ fun RowScope.ProfileButton(
         ),
         modifier = modifier
             .weight(1f),
-        enabled = enabled,
+//        enabled = enabled,
         contentPadding = PaddingValues(0.dp)
     ) {
         ProfileButtonLine(Modifier, enabled)
         Spacer(Modifier.weight(1f))
-        Text(text = text)
+        if (loading) {
+            CircularProgressIndicator()
+        } else {
+            Text(text = text, color = if (enabled) MaterialTheme.colors.primary else Color.Gray)
+        }
         Spacer(Modifier.weight(1f))
         ProfileButtonLine(Modifier, enabled)
     }
@@ -158,7 +246,7 @@ fun ProfileButtonLine(
 fun ProfileDivideLine() {
     Box(
         Modifier
-            .padding(top = 12.dp)
+            .padding(top = 4.dp)
             .height(1.dp)
             .fillMaxWidth()
             .background(Color.LightGray)
@@ -170,38 +258,16 @@ fun LazyListScope.ProfilePostListView(
     postList: List<List<Post>>,
     subNavController: NavController
 ) {
-    items(postList) {
+    itemsIndexed(postList) { index, list ->
         Row(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier.padding(top = 2.dp)
         ) {
-            PostListItemView(subNavController = subNavController, post = it[0])
-            if (it.count() > 2) {
-                PostListItemView(subNavController = subNavController, post = it[1])
-                PostListItemView(subNavController = subNavController, post = it[2])
-            } else if (it.count() > 1){
-                PostListItemView(subNavController = subNavController, post = it[1])
-                EmptyPostView()
-            } else {
-                EmptyPostView()
-                EmptyPostView()
-            }
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            modifier = Modifier.padding(top = 2.dp)
-        ) {
-            if (it.count() > 3) {
-                PostListItemView(subNavController = subNavController, post = it[3])
-                if (it.count() > 5) {
-                    PostListItemView(subNavController = subNavController, post = it[4])
-                    PostListItemView(subNavController = subNavController, post = it[5])
-                } else if (it.count() > 4){
-                    PostListItemView(subNavController = subNavController, post = it[4])
-                    EmptyPostView()
+            if (list.isNotEmpty()) {
+                PostListItemView(subNavController = subNavController, post = list[0], listIndex = index, postIndex = 0)
+                if (list.count() > 1) {
+                    PostListItemView(subNavController = subNavController, post = list[1], listIndex = index, postIndex = 1)
                 } else {
-                    EmptyPostView()
                     EmptyPostView()
                 }
             }
@@ -211,16 +277,25 @@ fun LazyListScope.ProfilePostListView(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier.padding(top = 2.dp)
         ) {
-            if (it.count() > 6) {
-                PostListItemView(subNavController = subNavController, post = it[6])
-                if (it.count() > 8) {
-                    PostListItemView(subNavController = subNavController, post = it[7])
-                    PostListItemView(subNavController = subNavController, post = it[8])
-                } else if (it.count() > 7){
-                    PostListItemView(subNavController = subNavController, post = it[7])
-                    EmptyPostView()
+            if (list.count() > 2) {
+                PostListItemView(subNavController = subNavController, post = list[2], listIndex = index, postIndex = 2)
+                if (list.count() > 3) {
+                    PostListItemView(subNavController = subNavController, post = list[3], listIndex = index, postIndex = 3)
                 } else {
                     EmptyPostView()
+                }
+            }
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.padding(top = 2.dp)
+        ) {
+            if (list.count() > 4) {
+                PostListItemView(subNavController = subNavController, post = list[4], listIndex = index, postIndex = 4)
+                if (list.count() > 5) {
+                    PostListItemView(subNavController = subNavController, post = list[5], listIndex = index, postIndex = 5)
+                } else {
                     EmptyPostView()
                 }
             }

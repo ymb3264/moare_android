@@ -20,9 +20,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import kr.moare.android.R
 import kr.moare.android.components.*
 import kr.moare.android.entities.BottomSheet
+import kr.moare.android.entities.Profile
 import kr.moare.android.utils.*
 import kr.moare.android.view.*
 import kr.moare.android.viewmodel.profile.ProfileViewModel
@@ -34,8 +37,10 @@ fun MyProfileView(
     bottomSheet: BottomSheet,
     profileVM: ProfileViewModel,
 ) {
-    val profile by profileVM.profile.collectAsState()
-    val postList by profileVM.postList.collectAsState()
+    val profile by profileVM.myProfile.collectAsState()
+//    val encodedProfile by profileVM.profileFlow.collectAsState("")
+//    val decodedProfile  = if (encodedProfile.isNotEmpty()) Json.decodeFromString<Profile>(encodedProfile) else null
+    val postList by profileVM.postsList.collectAsState()
 
     val listState = rememberLazyListState()
     val scrollingUp = listState.isScrollingUp()
@@ -48,12 +53,11 @@ fun MyProfileView(
                 title = {
                     TextButton(
                         onClick = {
-                            profileVM.getMyAccounts()
                             bottomSheet.mainOpenSheet(MainCurrentBottomSheet.MyAccounts)
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
                     ) {
-                        Text(text = profile.username)
+                        Text(text = profile.username, style = MaterialTheme.typography.subtitle1)
                         Icon(
                             painter = painterResource(id = R.drawable.ic_arrow_down),
                             contentDescription = "myAccounts"
@@ -100,7 +104,7 @@ fun MyProfileView(
                     modifier = Modifier
                         .padding(horizontal = 10.dp)
                         .clip(CircleShape)
-                        .size(120.dp)
+                        .size(100.dp)
                 ) {
                     if (profile.profileImage.isEmpty()) {
                         Icon(
@@ -108,15 +112,13 @@ fun MyProfileView(
                             contentDescription = "",
                             tint = Color.Gray,
                             modifier = Modifier
-//                                .clip(CircleShape)
                                 .size(120.dp)
                                 .background(Color.LightGray),
                         )
                     } else {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Transparent),
+                                .fillMaxSize(),
                         ) {
                             AsyncImage(
                                 model = profile.profileImage,
@@ -132,26 +134,50 @@ fun MyProfileView(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(100.dp)
                         .padding(horizontal = 10.dp),
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = profile.name)
-                    Text(text = profile.content)
-                    Text(text = profile.place)
+                    Text(
+                        text = profile.name,
+                        style = MaterialTheme.typography.body2,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+
+                    Text(
+                        text = profile.content,
+                        style = MaterialTheme.typography.body2
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_place),
+                            contentDescription = "place",
+                            modifier = Modifier.size(20.dp).padding(end = 4.dp)
+                        )
+                        Text(
+                            text = profile.place,
+                            style = MaterialTheme.typography.button,
+                            color = Color.DarkGray
+                        )
+                    }
                 }
             }
 
-            Text(
-                text = profile.sportHashtag.joinToString(" "),
-                modifier = Modifier
-                    .padding(start = 20.dp, end = 10.dp, bottom = 10.dp),
-                color = MaterialTheme.colors.primary
-            )
+            profile.sportHashtag?.let {
+                Text(
+                    text = it.joinToString(" "),
+                    modifier = Modifier
+                        .padding(start = 20.dp, end = 10.dp, bottom = 10.dp),
+                    color = MaterialTheme.colors.primary
+                )
+            }
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 10.dp),
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -169,7 +195,7 @@ fun MyProfileView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = profile.teamOrMember.size.toString(),
+                            text = if (profile.teamOrMember != null) profile.teamOrMember?.size.toString() else "0",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal
                         )
@@ -190,7 +216,7 @@ fun MyProfileView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = profile.follower.size.toString(),
+                            text = if (profile.follower != null) profile.follower?.size.toString() else "0",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal
                         )
@@ -211,7 +237,7 @@ fun MyProfileView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = profile.following.size.toString(),
+                            text = if (profile.following != null) profile.following?.size.toString() else "0",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal
                         )
@@ -268,7 +294,8 @@ fun MyProfileView(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 state = listState
             ) {
-                ProfilePostListView(postList, myProfileNavController)
+//                ProfilePostListView(postList, myProfileNavController)
+                PostListView(postList, myProfileNavController)
             }
         }
 

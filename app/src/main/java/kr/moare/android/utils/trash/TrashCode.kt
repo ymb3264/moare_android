@@ -9,6 +9,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kr.moare.android.utils.PostNavItem
@@ -430,3 +431,13 @@ import kr.moare.android.utils.PostNavItem
 //                enabled = username.isNotEmpty(),
 //                width = screenWidth
 //            )
+
+// textfield align center?
+//            textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center)
+
+// 화면 사이즈
+//val configuration = LocalConfiguration.current
+//val screenWidth = configuration.screenWidthDp
+
+// maxHeight
+//            .heightIn(max = 120.dp)

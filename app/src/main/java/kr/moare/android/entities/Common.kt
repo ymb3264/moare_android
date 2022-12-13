@@ -1,5 +1,6 @@
 package kr.moare.android.entities
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -15,5 +16,5 @@ data class TokenResponse(
 
 @Serializable
 data class SportHashtagList(
-    var sportList: MutableList<String>
+    var sportList: List<String>
 )

@@ -3,6 +3,10 @@ package kr.moare.android.viewmodel.start
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kr.moare.android.entities.LoginAccount
@@ -11,35 +15,51 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kr.moare.android.utils.PreferencesKey
+import kr.moare.android.utils.UserInfoDataStore
 import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val encryptedSharedPreferences: SharedPreferences
+    private val encryptedSharedPreferences: SharedPreferences,
+    @UserInfoDataStore private val userInfoDataStore: DataStore<Preferences>,
 ) : ViewModel() {
     private val api: LoginAPI = LoginAPI()
+
     val login = MutableStateFlow(false)
-    val loading = MutableStateFlow(true)
     val showErrorText = MutableStateFlow(false)
+
+    val loginLoading = MutableStateFlow(false)
+    val meLoading = MutableStateFlow(false)
 
     init {
         val token = encryptedSharedPreferences.getString("token", "") ?: ""
         me(token)
     }
 
-    fun login(email: String, pwd: String) {
-        val account = LoginAccount(email, pwd)
+    fun checkEmail() {
 
+    }
+
+    fun login(email: String, pwd: String) {
+        loginLoading.value = true
+        showErrorText.value = false
         viewModelScope.launch {
             kotlin.runCatching {
+                val account = LoginAccount(email, pwd)
                 api.login(account)
-            }.onSuccess {
-                encryptedSharedPreferences.edit().putString("token", it.token).apply()
-                encryptedSharedPreferences.edit().putString("username",it.username).apply()
+            }.onSuccess { response ->
+                encryptedSharedPreferences.edit().putString("token", response.token).apply()
+                userInfoDataStore.edit {
+                    it[PreferencesKey.USERNAME] = response.username
+                }
+
                 login.value = true
-                Log.d("success", "$it")
+                loginLoading.value = false
+                Log.d("success", "$response")
             }.onFailure {
+                loginLoading.value = false
                 showErrorText.value = true
                 Log.d("fail", "$it")
             }
@@ -47,18 +67,22 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun me(token: String) {
+        meLoading.value = true
         viewModelScope.launch {
             kotlin.runCatching {
-                loading.value = true
                 api.me(token)
-            }.onSuccess {
-                encryptedSharedPreferences.edit().putString("token", it.token).apply()
-                encryptedSharedPreferences.edit().putString("username",it.username).apply()
-                login.emit(true)
-                loading.value = false
-                Log.d("success", "$it")
+            }.onSuccess { response ->
+                meLoading.value = false
+
+                encryptedSharedPreferences.edit().putString("token", response.token).apply()
+                userInfoDataStore.edit {
+                    it[PreferencesKey.USERNAME] = response.username
+                }
+
+                login.value = true
+                Log.d("success", "$response")
             }.onFailure {
-                loading.value = false
+                meLoading.value = false
                 Log.d("fail", "$it")
             }
         }

@@ -1,9 +1,9 @@
 package kr.moare.android.network
 
+import android.util.Log
 import kr.moare.android.entities.Post
 import kr.moare.android.utils.network.APIRoutes
 import kr.moare.android.utils.network.KtorClient
-import kr.moare.android.entities.UserProfile
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -11,11 +11,13 @@ import io.ktor.http.*
 import io.ktor.util.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kr.moare.android.entities.CreateTeamProfile
+import kr.moare.android.entities.Profile
 import kr.moare.android.entities.UpdateProfile
 import java.io.File
 
 class ProfileAPI {
-    suspend fun getMyProfile(token: String, username: String): UserProfile {
+    suspend fun getMyProfile(token: String, username: String): Profile {
         return KtorClient.httpClient.get(APIRoutes.profile) {
             headers {
                 append(HttpHeaders.Authorization, "Bearer $token")
@@ -26,7 +28,7 @@ class ProfileAPI {
         }.body()
     }
 
-    suspend fun getUserProfile(username: String): UserProfile {
+    suspend fun getUserProfile(username: String): Profile {
         return KtorClient.httpClient.get(APIRoutes.userProfile) {
             url {
                 parameters.append("username", username)
@@ -35,16 +37,16 @@ class ProfileAPI {
     }
 
     suspend fun getUserPosts(username: String): List<Post> {
-        return KtorClient.httpClient.get(APIRoutes.post) {
+        return KtorClient.httpClient.get(APIRoutes.userPost) {
             url {
                 parameters.append("username", username)
             }
         }.body()
     }
 
-    suspend fun createTeamProfile(token: String, teamProfile: UserProfile, profileImage: File?): UserProfile {
-        val jsonTeamProfile = Json.encodeToString(teamProfile)
-
+    suspend fun createTeamProfile(token: String, profile: CreateTeamProfile, profileImage: File?): Profile {
+        val json = Json { encodeDefaults = true }
+        val jsonTeamProfile = json.encodeToString(profile)
         return KtorClient.httpClient.submitFormWithBinaryData(
             url = APIRoutes.teamProfile,
             formData = formData {
@@ -64,7 +66,7 @@ class ProfileAPI {
         }.body()
     }
 
-    suspend fun updateProfile(token: String, profile: UpdateProfile, profileImage: File?): UserProfile {
+    suspend fun updateProfile(token: String, profile: UpdateProfile, profileImage: File?): Profile {
         val jsonProfile = Json.encodeToString(profile)
 
         return KtorClient.httpClient.submitFormWithBinaryData(
@@ -86,7 +88,7 @@ class ProfileAPI {
         }.body()
     }
 
-    suspend fun getMyAccounts(token: String): List<UserProfile> {
+    suspend fun getMyAccounts(token: String): List<Profile> {
         return KtorClient.httpClient.get(APIRoutes.myAccounts) {
             headers {
                 append(HttpHeaders.Authorization, "Bearer $token")

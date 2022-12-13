@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class UserDefaultPlace(
+data class UserDefaultLocation(
     var address: String,
     var x: String,
     var y: String
@@ -25,8 +25,6 @@ data class CoordinateResponse(
 data class CoordinateAddress(
     @SerialName("address")
     val generalAddress: CoordinateGeneralAddress?,
-    @SerialName("road_address")
-    val roadAddress: RoadAddress?
 )
 
 @Serializable
@@ -50,8 +48,8 @@ data class Address(
     val fullAddress: String?,
     @SerialName("address")
     val generalAddress: GeneralAddress?,
-    @SerialName("road_address")
-    val roadAddress: RoadAddress?,
+//    @SerialName("road_address")
+//    val roadAddress: RoadAddress?,
     val x: String,
     val y: String
 )
@@ -68,23 +66,23 @@ data class GeneralAddress(
     val address3_h: String
 )
 
-@Serializable
-data class RoadAddress(
-    @SerialName("address_name")
-    val fullAddress: String,
-    @SerialName("region_1depth_name")
-    val address1: String,
-    @SerialName("region_2depth_name")
-    val address2: String,
-    @SerialName("region_3depth_name")
-    val address3: String,
-    @SerialName("road_name")
-    val roadName: String
-)
+//@Serializable
+//data class RoadAddress(
+//    @SerialName("address_name")
+//    val fullAddress: String,
+//    @SerialName("region_1depth_name")
+//    val address1: String,
+//    @SerialName("region_2depth_name")
+//    val address2: String,
+//    @SerialName("region_3depth_name")
+//    val address3: String,
+//    @SerialName("road_name")
+//    val roadName: String
+//)
 
 data class AddressItem(
     var address: String,
-    var roadAddress: String,
+//    var roadAddress: String,
     var x: String,
     var y: String
 )

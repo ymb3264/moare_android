@@ -1,5 +1,6 @@
 package kr.moare.android.view.common
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,7 +12,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -23,6 +26,7 @@ import kr.moare.android.viewmodel.profile.ProfileViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
+import kr.moare.android.entities.AddressItem
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class,
     ExperimentalPermissionsApi::class
@@ -30,10 +34,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun FindLocationView(
     bottomSheet: BottomSheet,
-    postCreateVM: PostCreateViewModel?,
-    profileVM: ProfileViewModel?,
+    isDefaultLocation: Boolean = false,
+    setLocation: (AddressItem) -> Unit = {},
+    completion: () -> Unit = {},
     locationVM: LocationViewModel = hiltViewModel(),
-    addPlaceToProfile: (String) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
 
@@ -42,7 +46,7 @@ fun FindLocationView(
 
     val addressList by locationVM.addressList.collectAsState()
     val showAlert by locationVM.showAlert.collectAsState()
-    val loading by locationVM.loading.collectAsState()
+    val loading by locationVM.addressListLoading.collectAsState()
     val noResult by locationVM.noResult.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
@@ -53,6 +57,14 @@ fun FindLocationView(
             android.Manifest.permission.ACCESS_FINE_LOCATION
         )
     )
+    
+    BackHandler() {
+        if (isDefaultLocation) {
+            bottomSheet.mainCloseSheet()
+        } else {
+            bottomSheet.subCloseSheet()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -63,10 +75,11 @@ fun FindLocationView(
                 actions = {
                     Button(
                         onClick = {
-                            if (profileVM != null || postCreateVM != null) {
-                                bottomSheet.subCloseSheet()
-                            } else {
+//                            if (profileVM != null || postCreateVM != null) {
+                            if (isDefaultLocation) {
                                 bottomSheet.mainCloseSheet()
+                            } else {
+                                bottomSheet.subCloseSheet()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -76,7 +89,7 @@ fun FindLocationView(
                             defaultElevation = 0.dp
                         )
                     ) {
-                        Text(text = "취소")
+                        Text(text = "취소", color = MaterialTheme.colors.primary)
                     }
                 },
             )
@@ -94,8 +107,9 @@ fun FindLocationView(
                 SearchBar(modifier = Modifier
                     .padding(horizontal = 12.dp)
                     .weight(1f),
-                    placeholder = "지역",
+                    placeholder = "동명(읍, 면)으로 검색 (ex. 서초동)",
                     text = query,
+                    textClear = { query = "" },
                     onTextChange = {
                         query = it
                         if (query.isEmpty()) {
@@ -140,14 +154,14 @@ fun FindLocationView(
                         defaultElevation = 0.dp
                     )
                 ) {
-                    Text(text = "현재 위치로 설정")
+                    Text(text = "현재 위치로 설정", color = MaterialTheme.colors.primary)
                 }
 
                 if (noResult.isNotEmpty()) {
                     Text(text = noResult)
                 }
             }
-            
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
@@ -155,20 +169,12 @@ fun FindLocationView(
                 items(addressList) {
                     TextButton(
                         onClick = {
-                            if (postCreateVM != null) {
-                                postCreateVM.post.place = it.address
-                                postCreateVM.post.x = it.x
-                                postCreateVM.post.y = it.y
-
-                                locationVM.addressList.value = mutableListOf()
-                                bottomSheet.subCloseSheet()
-                            } else if (profileVM != null) {
-                                addPlaceToProfile(it.address)
-
-                                locationVM.addressList.value = mutableListOf()
-                                bottomSheet.subCloseSheet()
-                            } else {
+                            if (isDefaultLocation) {
                                 locationVM.showAlert(true, addressItem = it)
+                            } else {
+                                setLocation(it)
+                                locationVM.addressList.value = mutableListOf()
+                                bottomSheet.subCloseSheet()
                             }
                         },
                         modifier = Modifier
@@ -180,17 +186,8 @@ fun FindLocationView(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-//                                .padding(horizontal = 10.dp)
                         ) {
                             Text(text = it.address)
-
-                            if (it.roadAddress != "") {
-                                Text(text = it.roadAddress,
-                                    color = Color.LightGray,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(top = 5.dp)
-                                )
-                            }
                         } // Column
                     } // TextButton
                 } // items
@@ -209,19 +206,15 @@ fun FindLocationView(
                             checkPermission = false
                             locationVM.addressList.value = mutableListOf()
 
-                            if (postCreateVM != null) {
-                                postCreateVM.post.place = locationVM.addressItem!!.address
-                                postCreateVM.post.x = locationVM.addressItem!!.x
-                                postCreateVM.post.y = locationVM.addressItem!!.y
-                                bottomSheet.subCloseSheet()
-                            } else if (profileVM != null) {
-                                addPlaceToProfile(locationVM.addressItem!!.address)
-                                bottomSheet.subCloseSheet()
-                            } else {
+                            if (isDefaultLocation) {
                                 coroutineScope.launch {
                                     locationVM.addLocation()
                                     bottomSheet.mainCloseSheet()
                                 }
+                            } else {
+                                setLocation(locationVM.addressItem!!)
+
+                                bottomSheet.subCloseSheet()
                             }
                         }) {
                             Text(text = "확인")
@@ -241,7 +234,9 @@ fun FindLocationView(
         } // Column
         if (loading) {
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Transparent),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Transparent),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()

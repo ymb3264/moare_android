@@ -82,7 +82,7 @@ fun PhOrEmailView(navController: NavController, joinVM: JoinViewModel) {
                 text = "다음",
                 onClick = {
                 joinVM.account.email = email
-                joinVM.getEmailCode()
+//                joinVM.getEmailCode()
                 navController.navigate(StartNavItem.Auth.name)
                 },
                 enabled = false

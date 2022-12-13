@@ -12,15 +12,19 @@ import java.io.File
 @Serializable
 @Parcelize
 data class Post(
-    val username: String,
-    val createdAt: String,
-    val yearAndMonth: String,
-    var mediaUrl: MediaUrl,
+    var username: String,
+    var profileImage: String,
+    var createdAt: String,
+    var yearAndMonth: String,
+    var mediaObj: List<MediaObj>,
     var content: String,
     var sportHashtag: List<String>,
     var place: String,
     var x: String,
     var y: String,
+    var like: List<String>? = null,
+    val updatedAt: String? = null,
+    val deleted: Boolean = false,
     @Transient
     var imageRequest: @RawValue List<ImageRequest>? = null,
     @Transient
@@ -29,10 +33,17 @@ data class Post(
 
 @Serializable
 @Parcelize
-data class MediaUrl(
-    var image: List<MediaUrlObj>,
-    var video: List<MediaUrlObj>
+data class MediaObj(
+    var type: String,
+    var url: String
 ) : Parcelable
+
+@Serializable
+data class LikeObj(
+    var username: String,
+    var postUsername: String,
+    var postCreatedAt: String
+)
 
 @Serializable
 @Parcelize

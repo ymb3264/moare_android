@@ -27,15 +27,15 @@ class FollowViewModel @Inject constructor(
 //        profileState.value = profile!!
     }
 
-    fun follow(username: String) {
-        viewModelScope.launch {
-            kotlin.runCatching {
-                api.follow(host, username)
-            }.onSuccess {
-                Log.d("success", "$it")
-            }.onFailure {
-                Log.d("FAIL", "message: $it")
-            }
-        }
-    }
+//    fun follow(username: String) {
+//        viewModelScope.launch {
+//            kotlin.runCatching {
+//                api.follow(host, username)
+//            }.onSuccess {
+//                Log.d("success", "$it")
+//            }.onFailure {
+//                Log.d("FAIL", "message: $it")
+//            }
+//        }
+//    }
 }

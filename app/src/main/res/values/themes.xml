@@ -12,6 +12,10 @@
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
+
+        <item name="android:windowActivityTransitions">true</item>
+        <item name="android:windowEnterTransition">@transition/trans_slide</item>
+        <item name="android:windowExitTransition">@transition/trans_slide</item>
     </style>
 
     <style name="Theme.Moare.NoActionBar">
