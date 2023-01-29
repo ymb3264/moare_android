@@ -106,7 +106,8 @@ fun MainNavGraph(
             PostCreateView(
                 bottomSheet,
                 mainNavController,
-                postCreateVM
+                postCreateVM,
+                profileVM
             )
         }
 
@@ -275,7 +276,7 @@ fun PostNavGraph(
                 ?: Post("", "", "", "", "", "", listOf(), "", listOf(), "", "", "")
             val listIndex = postNavController.previousBackStackEntry?.savedStateHandle?.get<Int>("listIndex") ?: 0
             val postIndex = postNavController.previousBackStackEntry?.savedStateHandle?.get<Int>("postIndex") ?: 0
-            PostDetailView(navController = postNavController, postVM = postVM, post = post, listIndex = listIndex, postIndex = postIndex)
+            PostDetailView(postNavController = postNavController, postVM = postVM, post = post, listIndex = listIndex, postIndex = postIndex)
         }
 
         composable(

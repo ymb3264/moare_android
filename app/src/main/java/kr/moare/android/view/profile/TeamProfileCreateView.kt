@@ -100,7 +100,7 @@ fun TeamProfileCreateView(
                 },
             )
         },
-        sheetPeekHeight = 0.dp,
+        sheetPeekHeight = bottomSheet.sheetHeight.dp,
         sheetContent = {
             bottomSheet.subSheet?.let {
                 when (it) {
@@ -205,6 +205,7 @@ fun TeamProfileCreateView(
                 required = false
             ) {
                 keyboardController?.hide()
+                bottomSheet.sheetHeight = screenHeight
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.SearchSport)
             }
             SportOrPlaceAddButton(
@@ -220,6 +221,7 @@ fun TeamProfileCreateView(
                 required = false
             ) {
                 keyboardController?.hide()
+                bottomSheet.sheetHeight = screenHeight
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.FindLocation)
             }
 

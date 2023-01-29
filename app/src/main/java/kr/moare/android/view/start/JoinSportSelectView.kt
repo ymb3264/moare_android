@@ -104,21 +104,21 @@ fun JoinSportSelectView(
                     .padding(horizontal = 12.dp)
                     .weight(0.7f)
             ) {
-//                if (query == "") {
-//                    items(sportList.keys.toList()) { sport ->
-//                        SportSelectButton(selected = sportList[sport], sport = sport) {
-//                            sportSelectVM.selectSport(sport)
-//                            joinVM.account.sportHashtag = selectedSport
-//                        }
-//                    }
-//                } else {
-//                    items(newSportList.keys.toList()) { sport ->
-//                        SportSelectButton(selected = sportList[sport], sport = sport) {
-//                            sportSelectVM.newSelectSport(sport)
-//                            joinVM.account.sportHashtag = selectedSport
-//                        }
-//                    }
-//                }
+                if (query == "") {
+                    items(sportList.keys.toList()) { sport ->
+                        SportSelectButton(selected = sportList[sport], sport = sport) {
+                            sportSelectVM.selectSport(sport)
+                            joinVM.account.sportHashtag = selectedSport
+                        }
+                    }
+                } else {
+                    items(newSportList.keys.toList()) { sport ->
+                        SportSelectButton(selected = sportList[sport], sport = sport) {
+                            sportSelectVM.newSelectSport(sport)
+                            joinVM.account.sportHashtag = selectedSport
+                        }
+                    }
+                }
             }
         }
 

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -42,6 +43,7 @@ import kr.moare.android.utils.MainNavItem
 import kr.moare.android.utils.StringResources
 import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.viewmodel.common.GalleryViewModel
+import kr.moare.android.viewmodel.profile.MyProfileViewModel
 import java.util.jar.Manifest
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class,
@@ -53,6 +55,7 @@ fun PostCreateView(
     mainNavController: NavController,
 //    postCreateNavController: NavController,
     postCreateVM: PostCreateViewModel,
+    profileVM: MyProfileViewModel,
     galleryVM: GalleryViewModel = hiltViewModel()
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -74,10 +77,13 @@ fun PostCreateView(
     }
 
     val keyboardController = LocalSoftwareKeyboardController.current
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp
 
     BackHandler() {
         if (postCreateVM.checkContent(selectedMediaList)) {
             coroutineScope.launch {
+                mainNavController.popBackStack()
                 mainNavController.navigateUp()
             }
         } else {
@@ -98,6 +104,7 @@ fun PostCreateView(
                         onClick = {
                             if (postCreateVM.checkContent(selectedMediaList)) {
                                 coroutineScope.launch {
+                                    mainNavController.popBackStack()
                                     mainNavController.navigateUp()
                                 }
                             } else {
@@ -116,7 +123,7 @@ fun PostCreateView(
                 },
             )
         },
-        sheetPeekHeight = 0.dp,
+        sheetPeekHeight = bottomSheet.sheetHeight.dp,
         sheetContent = {
             when (bottomSheet.subSheet) {
                 SubCurrentBottomSheet.SearchSport -> SportSelectView(
@@ -173,7 +180,7 @@ fun PostCreateView(
                         infoRequired = true,
                         infoText = StringResources.postCreateMediaInfo,
                         content = null,
-                        username = null,
+                        place = null,
                         uri = if (selectedMediaList.size > 0) selectedMediaList[0].uri else null
                     ) {
                         keyboardController?.hide()
@@ -191,7 +198,7 @@ fun PostCreateView(
                     PhotoPickerView(
                         description = StringResources.postCreatePreviewPlaceholder,
                         content = content,
-                        username = postCreateVM.username,
+                        place = place,
                         uri = if (selectedMediaList.size > 0) selectedMediaList[0].uri else null,
                         isPreview = true,
                         isVideo = if (selectedMediaList.size > 0) {
@@ -236,6 +243,7 @@ fun PostCreateView(
                 expanded = sport.isNotEmpty()
             ) {
                 keyboardController?.hide()
+                bottomSheet.sheetHeight = screenHeight
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.SearchSport)
             }
 
@@ -248,6 +256,7 @@ fun PostCreateView(
                 expanded = place.isNotEmpty()
             ) {
                 keyboardController?.hide()
+                bottomSheet.sheetHeight = screenHeight
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.FindLocation)
             }
 
@@ -269,6 +278,7 @@ fun PostCreateView(
             ) {
                 postCreateVM.createPost(selectedMediaList) {
                     mainNavController.popBackStack()
+                    profileVM.getUserPosts(postCreateVM.username)
                 }
             }
         }
@@ -285,6 +295,7 @@ fun PostCreateView(
                 confirmButton = {
                     TextButton(onClick = {
                         coroutineScope.launch {
+                            mainNavController.popBackStack()
                             mainNavController.navigateUp()
                         }
                     }) {

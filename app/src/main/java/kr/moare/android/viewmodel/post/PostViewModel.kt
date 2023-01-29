@@ -40,8 +40,6 @@ class PostViewModel @Inject constructor(
 ) : ViewModel() {
     val api = PostAPI()
 
-    val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
-
     private val usernameFlow = userIdUsernameDataStore.data.map {
         it[PreferencesKey.USERNAME] ?: ""
     }
@@ -110,6 +108,7 @@ class PostViewModel @Inject constructor(
         val oneDayBefore = oneDayBeforeFormatter.format(cal.time)
 
             kotlin.runCatching {
+                val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                 api.getPosts(token, yearMonthFormatter.format(Date()), currentLocation, username, oneDayBefore)
             }.onSuccess { response ->
                 if (response.isEmpty()) {
@@ -242,6 +241,7 @@ class PostViewModel @Inject constructor(
     }
 
     fun reportPost(post: Post, cb: () -> Unit) {
+        loading.value = true
         viewModelScope.launch {
             profileFlow.collect { encodedProfile ->
                 if (encodedProfile.isNotEmpty()) {
@@ -252,13 +252,16 @@ class PostViewModel @Inject constructor(
                             "createdAt" to post.postCreatedAt,
                             "userCreatedAt" to profile.createdAt
                         )
+
+                        val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                         api.reportPost(token, obj)
                     }.onSuccess {
                         if (it.message == "report success") {
                             cb()
                         }
+                        loading.value = false
                     }.onFailure {
-
+                        loading.value = false
                     }
                 } // if
                 coroutineContext.job.cancel()

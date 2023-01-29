@@ -55,7 +55,7 @@
         <activity android:name=".view.message.MessagesActivity" />
         <activity
             android:name="com.canhub.cropper.CropImageActivity"
-            android:theme="@style/Theme.Moare" />
+            android:theme="@style/CropImageBar" />
     </application>
 
 </manifest>

@@ -47,8 +47,6 @@ class UserProfileViewModel @Inject constructor(
 
     private val username: String = savedStateHandle["username"] ?: ""
 
-    val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
-
     val usernameFlow = userIdUsernameDataStore.data.map {
         it[PreferencesKey.USERNAME] ?: ""
     }
@@ -207,6 +205,7 @@ class UserProfileViewModel @Inject constructor(
                     )
                     val followObj = RequestFollowObj(userObj, targetObj, myProfile.value.isTeam, userProfile.value.isTeam)
 
+                    val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                     followAPI.follow(token, followObj)
                 }.onSuccess { response ->
                     // targetProfile update
@@ -277,6 +276,7 @@ class UserProfileViewModel @Inject constructor(
                 )
                 val followObj = RequestFollowObj(userObj, targetObj, myProfile.value.isTeam, userProfile.value.isTeam)
 
+                val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                 followAPI.unfollow(token, followObj)
             }.onSuccess { response ->
                 // targetProfile update
@@ -358,6 +358,8 @@ class UserProfileViewModel @Inject constructor(
                     "createdAt" to userProfile.value.createdAt,
                     "userCreatedAt" to myProfile.value.createdAt
                 )
+
+                val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                 profileAPI.reportUser(token, obj)
             }.onSuccess { response ->
                 if (response.message == "report success") {
@@ -379,7 +381,9 @@ class UserProfileViewModel @Inject constructor(
                         targetCreatedAt = userProfile.value.createdAt,
                         userProfile = Json.decodeFromString(profile)
                     )
-                profileAPI.blockUser(token, obj)
+
+                    val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
+                    profileAPI.blockUser(token, obj)
                 }.onSuccess { response ->
                     userInfoDataStore.edit { dataStore ->
                         dataStore[PreferencesKey.PROFILE] = Json.encodeToString(response)

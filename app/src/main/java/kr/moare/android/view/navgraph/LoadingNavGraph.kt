@@ -28,7 +28,6 @@ fun LoadingNavGraph() {
         composable(LoadingNavItem.StartLoading.name) {
             StartLoadingView(loadingNavController)
         }
-
         composable(LoadingNavItem.Start.name) {
             StartNavGraph(loadingNavController)
         }

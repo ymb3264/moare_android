@@ -440,6 +440,7 @@ fun MyProfilePostDetailView(
                             deleteAlert = false
                             profileVM.deletePost(post, listIndex, postIndex) {
                                 coroutineScope.launch {
+                                    myProfileNavController.popBackStack()
                                     myProfileNavController.navigateUp()
                                 }
                             }

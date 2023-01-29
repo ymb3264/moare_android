@@ -124,13 +124,19 @@ fun UserProfileView(
                                 dropMenuExpanded = false
                                 blockUserAlert = true
                             }) {
-                                Text(StringResources.block)
+                                Text(
+                                    text = StringResources.block,
+                                    color = Color.Red
+                                )
                             }
                             DropdownMenuItem(onClick = {
                                 dropMenuExpanded = false
                                 reportUserAlert = true
                             }) {
-                                Text(StringResources.report)
+                                Text(
+                                    text = StringResources.report,
+                                    color = Color.Red
+                                )
                             }
                         }
                     }

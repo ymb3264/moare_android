@@ -50,7 +50,7 @@ import kr.moare.android.viewmodel.profile.MyProfileViewModel
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun PostDetailView(
-    navController: NavController,
+    postNavController: NavController,
     postVM: PostViewModel,
     post: Post,
     listIndex: Int,
@@ -67,6 +67,9 @@ fun PostDetailView(
     var moreContent by remember { mutableStateOf(false) }
     var contentHeight by remember { mutableStateOf(0.dp) }
     var dropMenuExpanded by remember { mutableStateOf(false) }
+
+    var reportAlert by remember { mutableStateOf(false) }
+    var reportSuccessAlert by remember { mutableStateOf(false) }
 
     // 좋아요 즉각반응용 변수
     var postLike by remember { mutableStateOf(post.like) }
@@ -215,11 +218,12 @@ fun PostDetailView(
                     ) {
                         DropdownMenuItem(onClick = {
                             dropMenuExpanded = false
-                            postVM.reportPost(post) {
-//                                alert
-                            }
+                            reportAlert = true
                         }) {
-                            Text(StringResources.report)
+                            Text(
+                                text = StringResources.report,
+                                color = Color.Red
+                            )
                         }
                     }
                 }
@@ -400,6 +404,45 @@ fun PostDetailView(
                 )
             }
         } // column
+
+        if (reportAlert) {
+            AlertDialog(
+                onDismissRequest = { reportAlert = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        reportAlert = false
+                        postVM.reportPost(post) {
+                            reportSuccessAlert = true
+                        }
+                    }) {
+                        Text(text = StringResources.confirm)
+                    }
+                },
+                dismissButton = { TextButton(onClick = { reportAlert = false }) {
+                    Text(text = StringResources.cancel)
+                }},
+                title = { Text(text = StringResources.reportPostAlertTitle) },
+                text = { Text(text = StringResources.reportPostAlertMessage) }
+            )
+        }
+
+        if (reportSuccessAlert) {
+            AlertDialog(
+                onDismissRequest = { reportSuccessAlert = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        reportSuccessAlert = false
+                        postVM.removeReportedPost(listIndex, postIndex)
+                        postNavController.popBackStack()
+                        postNavController.navigateUp()
+                    }) {
+                        Text(text = StringResources.confirm)
+                    }
+                },
+                title = { Text(text = StringResources.reportPostAlertTitle) },
+                text = { Text(text = StringResources.reportSuccessMessgae) }
+            )
+        }
     } // box
 }
 

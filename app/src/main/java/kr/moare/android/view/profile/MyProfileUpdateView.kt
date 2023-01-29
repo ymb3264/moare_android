@@ -230,6 +230,7 @@ fun MyProfileUpdateView(
                 required = false
             ) {
                 keyboardController?.hide()
+                bottomSheet.sheetHeight = screenHeight
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.FindLocation)
             }
 

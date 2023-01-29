@@ -1,10 +1,7 @@
 package kr.moare.android.view.settings
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
-import androidx.compose.material.TopAppBar
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,57 +25,68 @@ fun AccountInfoView(
     profileVM: MyProfileViewModel
 ) {
     val profile by profileVM.myProfile.collectAsState()
+    val loading by profileVM.loading.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = StringResources.account)
-                },
-                backgroundColor = Color.White,
-                elevation = 0.dp
-            )
-        },
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Column() {
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = 12.dp)
-                    .padding(bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = StringResources.emailPlaceholder, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.Top))
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(text = StringResources.account)
+                    },
+                    backgroundColor = Color.White,
+                    elevation = 0.dp
+                )
+            },
+        ) {
+            Column() {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = StringResources.emailPlaceholder, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.Top))
 
-                Column {
-                    Text(
-                        text = profile.userID ?: "",
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                    ContentTextFieldLine(Modifier.padding(top = 6.dp, start = 8.dp))
+                    Column {
+                        Text(
+                            text = profile.userID ?: "",
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                        ContentTextFieldLine(Modifier.padding(top = 6.dp, start = 8.dp))
+                    }
                 }
-            }
 
-            TextButton(
-                onClick = {
-                    profileVM.deleteProfile {
-                        if (profile.isTeam) {
-                            myProfileNavController.popBackStack(MyProfileNavItem.MYPROFILE.name, inclusive = false)
-                        } else {
-                            profileVM.logout {
-                                loadingNavController.popBackStack()
-                                loadingNavController.navigate(LoadingNavItem.StartLoading.name)
+                TextButton(
+                    onClick = {
+                        profileVM.deleteProfile {
+                            if (profile.isTeam) {
+                                myProfileNavController.popBackStack(MyProfileNavItem.MYPROFILE.name, inclusive = false)
+                            } else {
+                                profileVM.logout {
+                                    loadingNavController.popBackStack()
+                                    loadingNavController.navigate(LoadingNavItem.StartLoading.name)
+                                }
                             }
                         }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp),
-            ) {
-                Text(text = if (profile.isTeam) StringResources.deleteTeamProfileButton else StringResources.deleteAccountButton, color = Color.Gray)
-                Spacer(modifier = Modifier.weight(1f))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                ) {
+                    Text(text = if (profile.isTeam) StringResources.deleteTeamProfileButton else StringResources.deleteAccountButton, color = Color.Gray)
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
+        } // scaffold
+
+        if (loading) {
+            CircularProgressIndicator(color = MaterialTheme.colors.primary)
         }
-    } // scaffold
+    }
+
 }

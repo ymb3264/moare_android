@@ -51,8 +51,6 @@ class MyProfileViewModel @Inject constructor(
     private val profileAPI = ProfileAPI()
     private val postAPI = PostAPI()
 
-    val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
-
     val chatClient = ChatClient.instance()
 
     val usernameFlow = userIdUsernameDataStore.data.map {
@@ -123,21 +121,22 @@ class MyProfileViewModel @Inject constructor(
             usernameFlow.collect { usernameFlow ->
                 if (usernameFlow.isNotEmpty()) {
                     username = usernameFlow
-                    userIDFlow.collect { userIDFlow ->
-                        if (userIDFlow.isNotEmpty()) {
-                            userID = userIDFlow
-                            getUserPosts(usernameFlow)
-                        }
-                        coroutineContext.job.cancel()
-                    }
                 }
-//                coroutineContext.job.cancel()
             }
         }
+        viewModelScope.launch {
+            userIDFlow.collect { userIDFlow ->
+                if (userIDFlow.isNotEmpty()) {
+                    userID = userIDFlow
+                }
+            }
+        }
+        getUserPosts(username)
     }
 
     private suspend fun getMyProfile(username: String) {
         kotlin.runCatching {
+            val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
             profileAPI.getMyProfile(token, username)
         }.onSuccess { profile ->
             // 다른 변수에 it을 담아도 공유가된다
@@ -155,31 +154,33 @@ class MyProfileViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getUserPosts(username: String) {
-        kotlin.runCatching {
-            postLoading.value = true
-            postNum = 6
-            postsList.value.clear()
-            profileAPI.getUserPosts(userID, username)
-        }.onSuccess {
-            if (it.isEmpty()) {
+    fun getUserPosts(username: String) {
+        viewModelScope.launch {
+            kotlin.runCatching {
+                postLoading.value = true
+                postNum = 6
+                postsList.value.clear()
+                profileAPI.getUserPosts(userID, username)
+            }.onSuccess {
+                if (it.isEmpty()) {
+                    postLoading.value = false
+                    return@launch
+                }
+
+                postsData = it.toMutableList()
+                val num = if (postsData.count() <= 6) {
+                    postsData.count()
+                } else {
+                    postNum
+                }
+
                 postLoading.value = false
-                return
+                postsList.value.add(postsData.take(num).toMutableList())
+                Log.d("getUserPosts", "$it")
+            }.onFailure {
+                postLoading.value = false
+                Log.d("getUserPosts", "message: $it")
             }
-
-            postsData = it.toMutableList()
-            val num = if (postsData.count() <= 6) {
-                postsData.count()
-            } else {
-                postNum
-            }
-
-            postLoading.value = false
-            postsList.value.add(postsData.take(num).toMutableList())
-            Log.d("getUserPosts", "$it")
-        }.onFailure {
-            postLoading.value = false
-            Log.d("getUserPosts", "message: $it")
         }
     }
 
@@ -236,6 +237,7 @@ class MyProfileViewModel @Inject constructor(
                 )
                 newTeamProfile.follow = followObj
 
+                val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                 profileAPI.createTeamProfile(token, newTeamProfile, compressedFile)
             }.onSuccess { profile ->
                 Log.d("Sdfsdf", profile.toString())
@@ -290,6 +292,8 @@ class MyProfileViewModel @Inject constructor(
                     val compressedFile = imageFile?.let { Compressor.compress(context, it) }
 
                     val requestUpdateProfile = RequestUpdateProfile(updatedUserProfile.value, myProfile.value)
+
+                    val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                     profileAPI.updateProfile(token, requestUpdateProfile, compressedFile)
                 }.onSuccess { profile ->
                     // profile이 team일때 team 채팅방 name, profileImage update
@@ -328,6 +332,7 @@ class MyProfileViewModel @Inject constructor(
     private fun getMyAccounts(createTeamChannel: Boolean = false, hostChatId: String = "") {
         viewModelScope.launch {
             kotlin.runCatching {
+                val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                 profileAPI.getMyAccounts(token)
             }.onSuccess { response ->
                 setChatIdAndConnectChat(createTeamChannel, hostChatId)
@@ -526,6 +531,7 @@ class MyProfileViewModel @Inject constructor(
         loading.value = true
         viewModelScope.launch {
             kotlin.runCatching {
+                val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                 profileAPI.deleteProfile(token, myProfile.value)
             }.onSuccess {
                 if (myProfile.value.isTeam) {
@@ -534,7 +540,6 @@ class MyProfileViewModel @Inject constructor(
                         cb()
                     }
                 } else {
-                    logout()
                     userInfoDataStore.edit {
                         it[PreferencesKey.PROFILE] = ""
                         it[PreferencesKey.ACCOUNTS] = setOf()
@@ -548,6 +553,7 @@ class MyProfileViewModel @Inject constructor(
                         it[PreferencesKey.USERID] = ""
                         it[PreferencesKey.USERNAME] = ""
                     }
+                    cb()
                 }
 
                 loading.value = false
@@ -563,6 +569,7 @@ class MyProfileViewModel @Inject constructor(
         loading.value = true
         viewModelScope.launch {
             kotlin.runCatching {
+                val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                 postAPI.updatePost(token, updatedPost.value)
             }.onSuccess {
                 postsList.value[postToUpdateListIndex][postToUpdatePostIndex] = it
@@ -586,6 +593,7 @@ class MyProfileViewModel @Inject constructor(
         loading.value = true
         viewModelScope.launch {
             kotlin.runCatching {
+                val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                 postAPI.deletePost(token, post)
             }.onSuccess {
                 postsList.value[listIndex].removeAt(postIndex)

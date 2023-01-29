@@ -32,13 +32,14 @@ import kr.moare.android.utils.SubCurrentBottomSheet
 import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.view.common.FindLocationView
 import kr.moare.android.view.common.GalleryView
+import kr.moare.android.view.common.ProfileGalleryView
 import kr.moare.android.view.common.SportSelectView
 import kr.moare.android.viewmodel.common.GalleryViewModel
 import kr.moare.android.viewmodel.post.PostCreateViewModel
 import kr.moare.android.viewmodel.post.PostViewModel
 import kr.moare.android.viewmodel.profile.MyProfileViewModel
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterialApi::class)
 @Composable
 fun PostUpdateView(
     bottomSheet: BottomSheet,
@@ -60,10 +61,11 @@ fun PostUpdateView(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     BackHandler() {
+        mainNavController.popBackStack()
         mainNavController.navigateUp()
     }
 
-    Scaffold(
+    BottomSheetScaffold(
         topBar = {
             TopAppBar(
                 title = { Text(text = StringResources.postUpdateNavigationTitle) },
@@ -74,6 +76,7 @@ fun PostUpdateView(
                         onClick = {
                             if (profileVM.checkUpdatedPostContent()) {
                                 coroutineScope.launch {
+                                    mainNavController.popBackStack()
                                     mainNavController.navigateUp()
                                 }
                             } else {
@@ -91,7 +94,23 @@ fun PostUpdateView(
                     }
                 },
             )
-        }
+        },
+        sheetPeekHeight = bottomSheet.sheetHeight.dp,
+        sheetContent = {
+            when (bottomSheet.subSheet) {
+                SubCurrentBottomSheet.SearchSport -> SportSelectView(
+                    bottomSheet = bottomSheet
+                ) { selectedSport, userHashtag ->
+                }
+                SubCurrentBottomSheet.FindLocation -> FindLocationView(
+                    bottomSheet = bottomSheet,
+                    setLocation = {
+                    }
+                )
+                SubCurrentBottomSheet.Gallery -> EmptyView()
+                SubCurrentBottomSheet.Empty -> EmptyView()
+            }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -191,8 +210,8 @@ fun PostUpdateView(
                 loading = loading
             ) {
                 profileVM.updatePost {
-                    mainNavController.navigateUp()
                     myProfileNavController.popBackStack()
+                    myProfileNavController.navigateUp()
                 }
             }
         }
@@ -203,6 +222,7 @@ fun PostUpdateView(
                 confirmButton = {
                     TextButton(onClick = {
                         coroutineScope.launch {
+                            mainNavController.popBackStack()
                             mainNavController.navigateUp()
                         }
                     }) {

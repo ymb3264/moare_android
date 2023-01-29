@@ -40,8 +40,6 @@ class PostCreateViewModel @Inject constructor(
 ) : ViewModel() {
     val api = PostAPI()
 
-    val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
-
     private val usernameFlow = userIdUsernameDataStore.data.map {
         it[PreferencesKey.USERNAME] ?: ""
     }
@@ -76,7 +74,7 @@ class PostCreateViewModel @Inject constructor(
                     post.x = location.x
                     post.y = location.y
                 }
-                coroutineContext.job.cancel()
+//                coroutineContext.job.cancel()
             }
         }
         viewModelScope.launch {
@@ -127,6 +125,7 @@ class PostCreateViewModel @Inject constructor(
                         fileList.add(compressedFile)
                     }
 
+                    val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                     api.createPost(token, post, fileList)
                 }.onSuccess {
                     loading.value = false
@@ -245,6 +244,7 @@ class PostCreateViewModel @Inject constructor(
                                     }
 
                                     kotlin.runCatching {
+                                        val token = encryptedSharedPreferences.getString("AccessToken", "") ?: ""
                                         api.createPost(token, post, fileList)
                                     }.onSuccess {
                                         loading.value = false

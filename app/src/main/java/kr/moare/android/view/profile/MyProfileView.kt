@@ -222,8 +222,7 @@ fun MyProfileView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-//                            text = if (profile.teamOrMember != null) profile.teamOrMember?.size.toString() else "0",
-                            text = "32",
+                            text = if (profile.teamOrMember != null) profile.teamOrMember?.size.toString() else "0",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal
                         )
@@ -244,8 +243,7 @@ fun MyProfileView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-//                            text = if (profile.follower != null) profile.follower?.size.toString() else "0",
-                            text = "110",
+                            text = if (profile.follower != null) profile.follower?.size.toString() else "0",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal
                         )
@@ -266,8 +264,7 @@ fun MyProfileView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-//                            text = if (profile.following != null) profile.following?.size.toString() else "0",
-                            text = "46",
+                            text = if (profile.following != null) profile.following?.size.toString() else "0",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal
                         )

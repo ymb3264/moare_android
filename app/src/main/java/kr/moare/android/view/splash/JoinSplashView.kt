@@ -88,7 +88,7 @@ fun JoinSplashView(
 
         delay(1100)
         if (joinSuccess) {
-            loadingNavController.popBackStack()
+            loadingNavController.popBackStack(LoadingNavItem.StartLoading.name, inclusive = false)
             loadingNavController.navigate(LoadingNavItem.Main.name)
         }
     }

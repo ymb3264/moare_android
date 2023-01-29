@@ -185,15 +185,17 @@ fun PostListItemShadowView(post: Post) {
                 text = post.content,
                 color = Color.White,
                 style = MaterialTheme.typography.body2,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(0.65f)
             )
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(0.1f))
             Text(
                 text = placeName,
                 color = Color.White,
                 style = MaterialTheme.typography.body2,
                 maxLines = 1,
+                modifier = Modifier.weight(0.25f),
                 textAlign = TextAlign.Right
             )
         }
@@ -225,7 +227,7 @@ fun BoxScope.PhotoPickerView(
     infoRequired: Boolean = false,
     infoText: String = "",
     content: String?,
-    username: String?,
+    place: String?,
     uri: Uri?,
     isPreview: Boolean = false,
     isVideo: Boolean = false,
@@ -323,9 +325,7 @@ fun BoxScope.PhotoPickerView(
                     contentScale = ContentScale.Fit
                 )
                 content?.let {
-                    username?.let {
-                        PhotoPickerShadowView(content, username)
-                    }
+                    PhotoPickerShadowView(content, place ?: "")
                 }
             } else {
                 AsyncImage(
@@ -351,7 +351,7 @@ fun PhotoPickerViewDot() {
 @Composable
 fun PhotoPickerShadowView(
     content: String,
-    username: String
+    place: String
 ) {
     Box(
         modifier = Modifier
@@ -382,11 +382,11 @@ fun PhotoPickerShadowView(
         )
         Spacer(modifier = Modifier.weight(0.1f))
         Text(
-            text = username,
+            text = if (place.isNotEmpty()) {
+                place.split(" ")[place.split(" ").lastIndex - 1] } else "",
             color = Color.White,
             style = MaterialTheme.typography.body2,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(0.25f),
             textAlign = TextAlign.Right
         )
