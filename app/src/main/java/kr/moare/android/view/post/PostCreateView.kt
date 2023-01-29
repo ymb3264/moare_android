@@ -1,31 +1,35 @@
 package kr.moare.android.view.post
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.*
 import kr.moare.android.components.*
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.ui.theme.MoareTheme
-import kr.moare.android.utils.PostCreateNavItem
 import kr.moare.android.utils.SubCurrentBottomSheet
 import kr.moare.android.view.common.FindLocationView
 import kr.moare.android.view.common.GalleryView
-import kr.moare.android.view.common.SportAddView
+import kr.moare.android.view.common.SportSelectView
 import kr.moare.android.viewmodel.post.PostCreateViewModel
 import kr.moare.android.viewmodel.post.PostViewModel
 import kotlinx.coroutines.launch
@@ -34,15 +38,20 @@ import kotlinx.serialization.json.Json
 import kr.moare.android.R
 import kr.moare.android.entities.Post
 import kr.moare.android.entities.UserDefaultLocation
+import kr.moare.android.utils.MainNavItem
+import kr.moare.android.utils.StringResources
+import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.viewmodel.common.GalleryViewModel
 import java.util.jar.Manifest
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class,
+    ExperimentalComposeUiApi::class
+)
 @Composable
 fun PostCreateView(
     bottomSheet: BottomSheet,
     mainNavController: NavController,
-    postCreateNavController: NavController,
+//    postCreateNavController: NavController,
     postCreateVM: PostCreateViewModel,
     galleryVM: GalleryViewModel = hiltViewModel()
 ) {
@@ -57,9 +66,14 @@ fun PostCreateView(
     val place = postCreateVM.post.place
 
     var alert by remember { mutableStateOf(false) }
+    var sportInfoAlert by remember { mutableStateOf(false) }
 
-    var checkPermission by remember { mutableStateOf(false) }
-    val permissionState = rememberPermissionState(permission = android.Manifest.permission.READ_EXTERNAL_STORAGE)
+    var permissionRequested by remember { mutableStateOf(false) }
+    val permissionState = rememberPermissionState(permission = android.Manifest.permission.READ_EXTERNAL_STORAGE)  {
+        permissionRequested = true
+    }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     BackHandler() {
         if (postCreateVM.checkContent(selectedMediaList)) {
@@ -76,7 +90,7 @@ fun PostCreateView(
         sheetGesturesEnabled = false,
         topBar = {
             TopAppBar(
-                title = { Text(text = "새 게시물") },
+                title = { Text(text = StringResources.postCreateNavigationTitle) },
                 backgroundColor = Color.White,
                 elevation = 0.dp,
                 actions = {
@@ -97,7 +111,7 @@ fun PostCreateView(
                             defaultElevation = 0.dp
                         )
                     ) {
-                        Text(text = "취소", color = MaterialTheme.colors.primary)
+                        Text(text = StringResources.cancel, color = MaterialTheme.colors.primary)
                     }
                 },
             )
@@ -105,10 +119,12 @@ fun PostCreateView(
         sheetPeekHeight = 0.dp,
         sheetContent = {
             when (bottomSheet.subSheet) {
-                SubCurrentBottomSheet.SearchSport -> SportAddView(
+                SubCurrentBottomSheet.SearchSport -> SportSelectView(
                     bottomSheet = bottomSheet
-                ) { sport ->
-                    postCreateVM.post.sportHashtag = sport
+                ) { selectedSport, userHashtag ->
+                    postCreateVM.post.sportHashtag = selectedSport
+                    postCreateVM.post.userHashtag = userHashtag
+                    postCreateVM.checkCompleteBtn(selectedMediaList)
                 }
                 SubCurrentBottomSheet.FindLocation -> FindLocationView(
                     bottomSheet = bottomSheet,
@@ -116,16 +132,25 @@ fun PostCreateView(
                         postCreateVM.post.place = it.address
                         postCreateVM.post.x = it.x
                         postCreateVM.post.y = it.y
+                        postCreateVM.checkCompleteBtn(selectedMediaList)
                     }
                 )
-                SubCurrentBottomSheet.Gallery -> GalleryView(bottomSheet, galleryVM)
+                SubCurrentBottomSheet.Gallery -> GalleryView(
+                    bottomSheet = bottomSheet,
+                    galleryVM = galleryVM,
+                    permissionRequested = permissionRequested,
+                    permissionState = permissionState,
+                ) {
+                    postCreateVM.checkCompleteBtn(selectedMediaList)
+                }
                 SubCurrentBottomSheet.Empty -> EmptyView()
             }
         }
     ) { padding ->
         Column(
             modifier = Modifier
-                .fillMaxSize(),
+                .fillMaxSize()
+                .noRippleClickable { keyboardController?.hide() },
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -144,17 +169,15 @@ fun PostCreateView(
                     contentAlignment = Alignment.Center
                 ) {
                     PhotoPickerView(
-                        description = "사진 및 영상 추가",
+                        description = StringResources.addMediaPlaceholder,
+                        infoRequired = true,
+                        infoText = StringResources.postCreateMediaInfo,
                         content = null,
                         username = null,
-                        if (selectedMediaList.size > 0) selectedMediaList[0].uri else null
+                        uri = if (selectedMediaList.size > 0) selectedMediaList[0].uri else null
                     ) {
-                        if (permissionState.status.isGranted) {
-                            bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
-                        } else {
-                            checkPermission = true
-                            permissionState.launchPermissionRequest()
-                        }
+                        keyboardController?.hide()
+                        bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
                     }
                 }
                 Box(
@@ -166,7 +189,7 @@ fun PostCreateView(
                     contentAlignment = Alignment.Center
                 ) {
                     PhotoPickerView(
-                        description = "미리보기",
+                        description = StringResources.postCreatePreviewPlaceholder,
                         content = content,
                         username = postCreateVM.username,
                         uri = if (selectedMediaList.size > 0) selectedMediaList[0].uri else null,
@@ -178,8 +201,8 @@ fun PostCreateView(
                         }
                     ) {
                         if (selectedMediaList.isNotEmpty()) {
-                            postCreateNavController.currentBackStackEntry?.savedStateHandle?.set("selectedMediaList", selectedMediaList.toTypedArray())
-                            postCreateNavController.navigate(PostCreateNavItem.POSTCCREATEDETAIL.name)
+                            mainNavController.currentBackStackEntry?.savedStateHandle?.set("selectedMediaList", selectedMediaList.toTypedArray())
+                            mainNavController.navigate(MainNavItem.POSTCREATEDETAIL.name)
                         }
                     }
                 }
@@ -200,42 +223,47 @@ fun PostCreateView(
                 )
 
                 Text(
-                    text = "스포츠 관련 사진/영상이 아닐경우 게시물이 삭제될 수 있습니다.",
+                    text = StringResources.postCreateMediaDeleteInfo,
                     color = Color.Gray,
                     style = MaterialTheme.typography.caption)
             }
 
             SportOrPlaceAddButton(
-                placeholder = "운동종목",
+                placeholder = StringResources.sportPlaceholder,
                 sport = sport,
+                infoRequired = true,
+                infoText = StringResources.postCreateSportInfo,
                 expanded = sport.isNotEmpty()
             ) {
+                keyboardController?.hide()
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.SearchSport)
             }
 
             SportOrPlaceAddButton(
-                placeholder = "장소",
+                placeholder = StringResources.locationPlaceholder,
                 place = place,
                 placeText = place.split(" ")[place.split(" ").lastIndex - 1],
+                infoRequired = true,
+                infoText = StringResources.postCreateLocationInfo,
                 expanded = place.isNotEmpty()
             ) {
+                keyboardController?.hide()
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.FindLocation)
             }
 
             ContentTextField(
                 modifier = Modifier,
-                placeholder = "내용입력(첫째줄은 메인에 표시됩니다.)",
+                placeholder = StringResources.postCreateContentPlaceholder,
                 text = content,
-                expanded = content.isNotEmpty(),
+                required = false,
                 onTextChange = {
                     postCreateVM.post.content = it
                     postCreateVM.content.value = it
-                    postCreateVM.checkCompleteBtn(selectedMediaList)
                 }
             )
 
             CompleteButton(
-                text = "게시",
+                text = StringResources.upload,
                 enabled = completeBtn,
                 loading = loading
             ) {
@@ -245,11 +273,11 @@ fun PostCreateView(
             }
         }
 
-        if (permissionState.status.isGranted && checkPermission) {
-            galleryVM.loadAttachments()
-            bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
-            checkPermission = false
-        }
+//        if (permissionState.status.isGranted && permissionRequested) {
+//            galleryVM.loadAttachments(false)
+//            bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
+//            permissionRequested = false
+//        }
 
         if (alert) {
             AlertDialog(
@@ -260,29 +288,29 @@ fun PostCreateView(
                             mainNavController.navigateUp()
                         }
                     }) {
-                        Text(text = "확인")
+                        Text(text = StringResources.confirm)
                     }
                 },
                 dismissButton = { TextButton(onClick = { alert = false }) {
-                    Text(text = "취소")
+                    Text(text = StringResources.cancel)
                 }},
-                title = { Text(text = "작성내용 삭제") },
-                text = { Text(text = "작성중인 내용이 삭제됩니다.") }
+                title = { Text(text = StringResources.deleteFormTitle) },
+                text = { Text(text = StringResources.deleteFormMessage) }
             )
         }
     } // scaffold
 }
 
-@OptIn(ExperimentalMaterialApi::class)
-@Preview(showBackground = true)
-@Composable
-fun AddPostViewPreview() {
-    MoareTheme {
-        val bottomSheetScaffoldState = rememberBottomSheetScaffoldState()
-//        val coroutineScope = rememberCoroutineScope()
-//        coroutineScope.launch {
-//            bottomSheetScaffoldState.bottomSheetState.expand()
-//        }
-//        AddPostView(rememberNavController())
-    }
-}
+//@OptIn(ExperimentalMaterialApi::class)
+//@Preview(showBackground = true)
+//@Composable
+//fun AddPostViewPreview() {
+//    MoareTheme {
+//        PostCreateView(
+//            bottomSheet = ,
+//            mainNavController = ,
+//            postCreateNavController = ,
+//            postCreateVM =
+//        )
+//    }
+//}

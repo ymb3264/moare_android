@@ -1,6 +1,5 @@
 package kr.moare.android.view.navgraph
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
@@ -18,22 +17,32 @@ import kr.moare.android.view.profile.MyProfileView
 import kr.moare.android.view.profile.UserProfileView
 import kr.moare.android.viewmodel.post.PostCreateViewModel
 import kr.moare.android.viewmodel.post.PostViewModel
-import kr.moare.android.viewmodel.profile.ProfileViewModel
+import kr.moare.android.viewmodel.profile.MyProfileViewModel
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import kr.moare.android.entities.Profile
 import kr.moare.android.entities.SelectedMedia
 import kr.moare.android.view.post.*
+import kr.moare.android.view.profile.MyProfilePostDetailView
+import kr.moare.android.view.settings.*
+import kr.moare.android.viewmodel.start.LoginViewModel
+import kotlin.math.log
 
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterialApi::class)
 @Composable
-fun MainNavGraph(postNavController: NavController) {
+fun MainNavGraph(
+    loadingNavController: NavController
+) {
     val mainNavController = rememberAnimatedNavController()
+    val myProfileNavController = rememberAnimatedNavController()
 
     val main = MainNavItem.MAIN.name
-    val addPost = MainNavItem.POSTCREATE.name
+    val postCreate = MainNavItem.POSTCREATE.name
+    val postCreateDetail = MainNavItem.POSTCREATEDETAIL.name
     val messageList = MainNavItem.MESSAGELIST.name
+    val postUpdate = MainNavItem.POSTUPDATE.name
+    val postUpdateDetail = MainNavItem.POSTUPDATEDETAIL.name
 
     // 여기서 subBottomSheet만해서 bottomSheet을 선언하고 BottomTabNavGraph에서 mainBottomSheet을 넣을 수도 있다.
     val coroutineScope = rememberCoroutineScope()
@@ -54,6 +63,9 @@ fun MainNavGraph(postNavController: NavController) {
         coroutineScope,
     )) }
 
+    val profileVM: MyProfileViewModel = hiltViewModel()
+    val postCreateVM: PostCreateViewModel = hiltViewModel()
+
     AnimatedNavHost(
         navController = mainNavController,
         startDestination = main
@@ -66,10 +78,11 @@ fun MainNavGraph(postNavController: NavController) {
                 }
             }
         ) {
-            BottomTabNavGraph(mainNavController, bottomSheet, postNavController)
+            BottomTabNavGraph(mainNavController, myProfileNavController, bottomSheet, loadingNavController, profileVM)
         }
+
         composable(
-            addPost,
+            postCreate,
             enterTransition = {
                 when (initialState.destination.route) {
                     main -> slideIntoContainer(
@@ -89,8 +102,39 @@ fun MainNavGraph(postNavController: NavController) {
                 }
             }
         ) {
-            PostCreateNavGraph(bottomSheet, mainNavController)
+//            PostCreateNavGraph(bottomSheet, mainNavController)
+            PostCreateView(
+                bottomSheet,
+                mainNavController,
+                postCreateVM
+            )
         }
+
+        composable(
+            postCreateDetail,
+            enterTransition = {
+                when (initialState.destination.route) {
+                    postCreate -> slideIntoContainer(
+                        AnimatedContentScope.SlideDirection.Left,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            },
+            exitTransition = {
+                when (targetState.destination.route) {
+                    postCreate -> slideOutOfContainer(
+                        AnimatedContentScope.SlideDirection.Right,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            }
+        ) {
+            val selectedMediaList = mainNavController.previousBackStackEntry?.savedStateHandle?.get<Array<SelectedMedia>>("selectedMediaList") ?: arrayOf()
+            PostCreateDetailView(mainNavController, postCreateVM, selectedMediaList)
+        }
+
         composable(
             messageList,
             enterTransition = {
@@ -112,7 +156,60 @@ fun MainNavGraph(postNavController: NavController) {
                 }
             }
         ) {
-            MessageListView(mainNavController)
+            MessageListView(mainNavController, profileVM)
+        }
+
+        composable(
+            postUpdate,
+            enterTransition = {
+                when (initialState.destination.route) {
+                    main -> slideIntoContainer(
+                        AnimatedContentScope.SlideDirection.Left,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            },
+            exitTransition = {
+                when (targetState.destination.route) {
+                    main -> slideOutOfContainer(
+                        AnimatedContentScope.SlideDirection.Right,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            }
+        ) {
+            PostUpdateView(
+                bottomSheet = bottomSheet,
+                mainNavController = mainNavController,
+                profileVM = profileVM,
+                myProfileNavController = myProfileNavController
+            )
+        }
+
+        composable(
+            postUpdateDetail,
+            enterTransition = {
+                when (initialState.destination.route) {
+                    postUpdate -> slideIntoContainer(
+                        AnimatedContentScope.SlideDirection.Left,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            },
+            exitTransition = {
+                when (targetState.destination.route) {
+                    postUpdate -> slideOutOfContainer(
+                        AnimatedContentScope.SlideDirection.Right,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            }
+        ) {
+
         }
     }
 }
@@ -124,15 +221,16 @@ fun PostNavGraph(
     bottomTabNavController: NavController,
     bottomSheet: BottomSheet,
     postVM: PostViewModel,
-    postNavController: NavController
+    postNavController: NavHostController
 ) {
     val post = PostNavItem.POST.name
     val postDetail = PostNavItem.POSTDETAIL.name
     val userProfile = UserProfileNavItem.USERPROFILE.name
     val followList = UserProfileNavItem.FOLLOWLIST.name
+    val deepLinkPostDetail = PostNavItem.DEEPLINKPOSTDETAIL.name
 
     AnimatedNavHost(
-        navController = postNavController as NavHostController,
+        navController = postNavController,
         startDestination = post
     ) {
         composable(
@@ -153,7 +251,7 @@ fun PostNavGraph(
         }
 
         composable(
-            "$postDetail/{number}",
+            "$postDetail",
             enterTransition = {
                 when (initialState.destination.route) {
                     post -> slideIntoContainer(
@@ -171,16 +269,12 @@ fun PostNavGraph(
                     )
                     else -> null
                 }
-            },
-            arguments = listOf(navArgument("number") { type = NavType.IntType }),
-            deepLinks = listOf(navDeepLink { uriPattern = "http://10.0.2.2:8080/{number}" })
-//            deepLinks = listOf(navDeepLink { uriPattern = "test://test/{number}" })
+            }
         ) {
             val post = postNavController.previousBackStackEntry?.savedStateHandle?.get<Post>("post")
-                ?: Post("", "", "", "", listOf(), "", listOf(), "", "", "", null)
+                ?: Post("", "", "", "", "", "", listOf(), "", listOf(), "", "", "")
             val listIndex = postNavController.previousBackStackEntry?.savedStateHandle?.get<Int>("listIndex") ?: 0
             val postIndex = postNavController.previousBackStackEntry?.savedStateHandle?.get<Int>("postIndex") ?: 0
-            val number = it.arguments?.getInt("number")
             PostDetailView(navController = postNavController, postVM = postVM, post = post, listIndex = listIndex, postIndex = postIndex)
         }
 
@@ -248,64 +342,24 @@ fun PostNavGraph(
                 page = page
             )
         }
-    }
-}
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalAnimationApi::class)
-@Composable
-fun PostCreateNavGraph(
-    bottomSheet: BottomSheet,
-    mainNavController: NavController
-) {
-    val postCreateNavController = rememberAnimatedNavController()
-
-    val postCreateVM: PostCreateViewModel = hiltViewModel()
-
-    val postCreate = PostCreateNavItem.POSTCREATE.name
-    val postCreateDetail = PostCreateNavItem.POSTCCREATEDETAIL.name
-
-    AnimatedNavHost(
-        navController = postCreateNavController,
-        startDestination = postCreate
-    ) {
         composable(
-            postCreate,
-            enterTransition = {
-                when (initialState.destination.route) {
-                    else -> null
-                }
-            }
-        ) {
-            PostCreateView(
-                bottomSheet,
-                mainNavController,
-                postCreateNavController,
-                postCreateVM
-            )
-        }
-        composable(
-            postCreateDetail,
-            enterTransition = {
-                when (initialState.destination.route) {
-                    postCreate -> slideIntoContainer(
-                        AnimatedContentScope.SlideDirection.Left,
-                        animationSpec = tween(700)
-                    )
-                    else -> null
-                }
-            },
+            "https://www.moare.kr/post/one?yearAndMonth={yearAndMonth}&postCreatedAt={postCreatedAt}",
             exitTransition = {
                 when (targetState.destination.route) {
-                    postCreate -> slideOutOfContainer(
+                    post -> slideOutOfContainer(
                         AnimatedContentScope.SlideDirection.Right,
                         animationSpec = tween(700)
                     )
                     else -> null
                 }
-            }
+            },
+            arguments = listOf(
+                navArgument("yearAndMonth") { type = NavType.StringType },
+                navArgument("postCreatedAt") { type = NavType.StringType }),
+            deepLinks = listOf(navDeepLink { uriPattern = "https://www.moare.kr/post/one?yearAndMonth={yearAndMonth}&postCreatedAt={postCreatedAt}" })
         ) {
-            val selectedMediaList = postCreateNavController.previousBackStackEntry?.savedStateHandle?.get<Array<SelectedMedia>>("selectedMediaList") ?: arrayOf()
-            PostCreateDetailView(postCreateNavController, postCreateVM, selectedMediaList)
+            DeepLinkPostDetailView(postNavController)
         }
     }
 }
@@ -316,13 +370,19 @@ fun MyProfileNavGraph(
     mainNavController: NavController,
     bottomTabNavController: NavController,
     bottomSheet: BottomSheet,
-    profileVM: ProfileViewModel,
+    profileVM: MyProfileViewModel,
+    loadingNavController: NavController,
+    myProfileNavController: NavHostController
 ) {
-    val myProfileNavController = rememberAnimatedNavController()
-
     val myProfile = MyProfileNavItem.MYPROFILE.name
+    val postDetail = MyProfileNavItem.POSTDETAIL.name
     val userProfile = UserProfileNavItem.USERPROFILE.name
     val followList = UserProfileNavItem.FOLLOWLIST.name
+    val settings = MyProfileNavItem.SETTINGS.name
+    val accountInfo = MyProfileNavItem.ACCOUNTINFO.name
+    val info = MyProfileNavItem.INFO.name
+    val contact = MyProfileNavItem.CONTACT.name
+    val infoDetail = MyProfileNavItem.INFODETAIL.name
 
     AnimatedNavHost(
         navController = myProfileNavController,
@@ -390,6 +450,43 @@ fun MyProfileNavGraph(
         }
 
         composable(
+            postDetail,
+            enterTransition = {
+                when (initialState.destination.route) {
+                    myProfile -> slideIntoContainer(
+                        AnimatedContentScope.SlideDirection.Left,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            },
+            exitTransition = {
+                when (targetState.destination.route) {
+                    myProfile -> slideOutOfContainer(
+                        AnimatedContentScope.SlideDirection.Right,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            }
+        ) {
+            val post = myProfileNavController.previousBackStackEntry?.savedStateHandle?.get<Post>("post")
+                ?: Post("", "", "", "", "", "", listOf(), "", listOf(), "", "", "")
+            val listIndex = myProfileNavController.previousBackStackEntry?.savedStateHandle?.get<Int>("listIndex") ?: 0
+            val postIndex = myProfileNavController.previousBackStackEntry?.savedStateHandle?.get<Int>("postIndex") ?: 0
+
+            MyProfilePostDetailView(
+                bottomSheet = bottomSheet,
+                mainNavController = mainNavController,
+                myProfileNavController = myProfileNavController,
+                profileVM = profileVM,
+                post = post,
+                listIndex = listIndex,
+                postIndex = postIndex
+            )
+        }
+
+        composable(
             "$userProfile/{username}",
             arguments = listOf(
                 navArgument("username") {
@@ -405,11 +502,6 @@ fun MyProfileNavGraph(
                     else -> null
                 }
             },
-//            exitTransition = {
-//                when (targetState.destination.route) {
-//                    else -> null
-//                }
-//            },
             popEnterTransition = {
                 when (initialState.destination.route) {
                     else -> null
@@ -422,13 +514,135 @@ fun MyProfileNavGraph(
                         animationSpec = tween(700)
                     )
                 }
-            }
+            },
+//            deepLinks =
         ) {
             UserProfileView(mainNavController, myProfileNavController)
         }
+
+        composable(
+            settings,
+            enterTransition = {
+                when (initialState.destination.route) {
+                    myProfile -> slideIntoContainer(
+                        AnimatedContentScope.SlideDirection.Left,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            },
+            exitTransition = {
+                when (targetState.destination.route) {
+                    myProfile -> slideOutOfContainer(
+                        AnimatedContentScope.SlideDirection.Right,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            }
+        ) {
+            SettingsView(loadingNavController, myProfileNavController, profileVM)
+        }
+
+        composable(
+            accountInfo,
+            enterTransition = {
+                when (initialState.destination.route) {
+                    settings -> slideIntoContainer(
+                        AnimatedContentScope.SlideDirection.Left,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            },
+            exitTransition = {
+                when (targetState.destination.route) {
+                    settings -> slideOutOfContainer(
+                        AnimatedContentScope.SlideDirection.Right,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            }
+        ) {
+            AccountInfoView(loadingNavController, myProfileNavController, profileVM)
+        }
+
+        composable(
+            info,
+            enterTransition = {
+                when (initialState.destination.route) {
+                    settings -> slideIntoContainer(
+                        AnimatedContentScope.SlideDirection.Left,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            },
+            exitTransition = {
+                when (targetState.destination.route) {
+                    settings -> slideOutOfContainer(
+                        AnimatedContentScope.SlideDirection.Right,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            }
+        ) {
+            InfoView(myProfileNavController)
+        }
+
+        composable(
+            infoDetail,
+            enterTransition = {
+                when (initialState.destination.route) {
+                    info -> slideIntoContainer(
+                        AnimatedContentScope.SlideDirection.Left,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            },
+            exitTransition = {
+                when (targetState.destination.route) {
+                    info -> slideOutOfContainer(
+                        AnimatedContentScope.SlideDirection.Right,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            }
+        ) {
+            val title = myProfileNavController.previousBackStackEntry?.savedStateHandle?.get<String>("title") ?: ""
+            val url = myProfileNavController.previousBackStackEntry?.savedStateHandle?.get<String>("url") ?: ""
+            InfoDetailView(title, url)
+        }
+
+        composable(
+            contact,
+            enterTransition = {
+                when (initialState.destination.route) {
+                    settings -> slideIntoContainer(
+                        AnimatedContentScope.SlideDirection.Left,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            },
+            exitTransition = {
+                when (targetState.destination.route) {
+                    settings -> slideOutOfContainer(
+                        AnimatedContentScope.SlideDirection.Right,
+                        animationSpec = tween(700)
+                    )
+                    else -> null
+                }
+            }
+        ) {
+            ContactView(myProfileNavController)
+        }
     }
 }
-
 
 
 

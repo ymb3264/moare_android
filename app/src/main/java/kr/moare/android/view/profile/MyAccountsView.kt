@@ -4,10 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -20,18 +18,21 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import kr.moare.android.R
 import kr.moare.android.entities.BottomSheet
-import kr.moare.android.entities.Profile
-import kr.moare.android.viewmodel.profile.ProfileViewModel
+import kr.moare.android.utils.MainNavItem
+import kr.moare.android.utils.PostNavItem
+import kr.moare.android.viewmodel.post.PostViewModel
+import kr.moare.android.viewmodel.profile.MyProfileViewModel
 
 @Composable
 fun MyAccountsView(
     bottomSheet: BottomSheet,
-    profileVM: ProfileViewModel
+    profileVM: MyProfileViewModel,
+    postVM: PostViewModel,
+    postNavController: NavController
 ) {
 
     val accounts by profileVM.accounts.collectAsState()
@@ -43,13 +44,15 @@ fun MyAccountsView(
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = 160.dp),
+            .height(160.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         itemsIndexed(accounts.toList()) { index, account ->
             TextButton(
                 onClick = {
-                    profileVM.changeProfile(account)
+                    profileVM.changeProfile(account.username)
+                    postNavController.popBackStack(PostNavItem.POST.name, inclusive = false)
+                    postVM.showSearchView.value = false
                     bottomSheet.mainCloseSheet()
                 },
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.Black),

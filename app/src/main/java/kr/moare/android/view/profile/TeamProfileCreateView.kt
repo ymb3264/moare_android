@@ -2,40 +2,44 @@ package kr.moare.android.view.profile
 
 import android.Manifest
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import kr.moare.android.components.*
 import kr.moare.android.entities.BottomSheet
+import kr.moare.android.utils.StringResources
 import kr.moare.android.view.common.FindLocationView
 import kr.moare.android.utils.SubCurrentBottomSheet
+import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.view.common.ProfileGalleryView
-import kr.moare.android.view.common.SportAddView
+import kr.moare.android.view.common.SportSelectView
 import kr.moare.android.viewmodel.common.GalleryViewModel
-import kr.moare.android.viewmodel.profile.ProfileViewModel
-import kr.moare.android.viewmodel.start.JoinViewModel
+import kr.moare.android.viewmodel.profile.MyProfileViewModel
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class,
+    ExperimentalComposeUiApi::class
+)
 @Composable
 fun TeamProfileCreateView(
     bottomSheet: BottomSheet,
-    profileVM: ProfileViewModel,
+    profileVM: MyProfileViewModel,
     galleryVM: GalleryViewModel = hiltViewModel()
 ) {
     var teamUsername by remember { mutableStateOf("") }
     var teamName by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
+    var isDefaultImage by remember { mutableStateOf(false) }
 
     val croppedImage by galleryVM.croppedImage.collectAsState()
 
@@ -43,17 +47,20 @@ fun TeamProfileCreateView(
     val showErrorText1 by profileVM.showErrorText1.collectAsState()
     val showErrorText2 by profileVM.showErrorText2.collectAsState()
     val usernameLoading by profileVM.usernameLoading.collectAsState()
+    val createLoading by profileVM.loading.collectAsState()
 
-    val errorText1 = "이미 사용중인 이름입니다"
-    val errorText2 = "사용자 이름에는 영어 대/소문자, 숫자,\n밑줄(_) 및 마침표(.)만 사용할 수 있습니다."
+    val errorText1 = StringResources.existingUsernameError
+    val errorText2 = StringResources.usernameValidationError
 
     val sport = profileVM.newTeamProfile.sportHashtag
     val place = profileVM.newTeamProfile.place
 
     var alert by remember { mutableStateOf(false) }
 
-    var checkPermission by remember { mutableStateOf(false) }
-    val permissionState = rememberPermissionState(permission = Manifest.permission.READ_EXTERNAL_STORAGE)
+    var permissionRequested by remember { mutableStateOf(false) }
+    val permissionState = rememberPermissionState(permission = Manifest.permission.READ_EXTERNAL_STORAGE) {
+        permissionRequested = true
+    }
 
     BackHandler() {
         if (profileVM.checkTeamContent(croppedImage)) {
@@ -66,13 +73,14 @@ fun TeamProfileCreateView(
 
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     BottomSheetScaffold(
         scaffoldState = bottomSheet.subSheetScaffoldState,
         sheetGesturesEnabled = false,
         topBar = {
             TopAppBar(
-                title = { Text(text = "새 팀 프로필") },
+                title = { Text(text = StringResources.teamProfileCreateNavigationTitle) },
                 backgroundColor = Color.White,
                 elevation = 0.dp,
                 actions = {
@@ -87,7 +95,7 @@ fun TeamProfileCreateView(
                         },
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text(text = "취소")
+                        Text(text = StringResources.cancel)
                     }
                 },
             )
@@ -96,10 +104,11 @@ fun TeamProfileCreateView(
         sheetContent = {
             bottomSheet.subSheet?.let {
                 when (it) {
-                    SubCurrentBottomSheet.SearchSport -> SportAddView(
+                    SubCurrentBottomSheet.SearchSport -> SportSelectView(
                         bottomSheet = bottomSheet
-                    ) { sport ->
-                        profileVM.newTeamProfile.sportHashtag = sport
+                    ) { selectedSport, userHashtag ->
+                        profileVM.newTeamProfile.sportHashtag = selectedSport
+                        profileVM.newTeamProfile.userHashtag = userHashtag
                     }
                     SubCurrentBottomSheet.FindLocation -> FindLocationView(
                         bottomSheet = bottomSheet,
@@ -109,8 +118,10 @@ fun TeamProfileCreateView(
                     )
                     SubCurrentBottomSheet.Gallery -> ProfileGalleryView(
                         bottomSheet = bottomSheet,
-                        galleryVM = galleryVM
-                    )
+                        galleryVM = galleryVM,
+                        permissionRequested = permissionRequested,
+                        permissionState = permissionState
+                    ) { isDefaultImage = false }
                     SubCurrentBottomSheet.Empty -> EmptyView()
                 }
             }
@@ -118,18 +129,24 @@ fun TeamProfileCreateView(
     ) { padding ->
         Column(
             modifier = Modifier
-                .fillMaxSize(),
+                .fillMaxSize()
+                .noRippleClickable { keyboardController?.hide() },
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ProfileImageAddButton("", croppedImage) {
-                if (permissionState.status.isGranted) {
+            ProfileImageAddButton(
+                url = "",
+                uri = croppedImage,
+                isDefaultImage = isDefaultImage,
+                onClick1 = {
+                    keyboardController?.hide()
                     bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
-                } else {
-                    checkPermission = true
-                    permissionState.launchPermissionRequest()
+                },
+                onClick2 = {
+                    galleryVM.croppedImage.value = null
+                    isDefaultImage = true
                 }
-            }
+            )
 
             ProfileTextField(
                 modifier = Modifier
@@ -144,7 +161,7 @@ fun TeamProfileCreateView(
             ProfileTextField(
                 modifier = Modifier
                     .padding(vertical = 6.dp),
-                placeholder = "팀 사용자 명",
+                placeholder = StringResources.teamUsernamePlaceholder,
                 text = teamUsername,
                 onTextChange = {
                     teamUsername = it
@@ -168,21 +185,26 @@ fun TeamProfileCreateView(
             ProfileTextField(
                 modifier = Modifier
                     .padding(vertical = 6.dp),
-                placeholder = "팀 명",
+                placeholder = StringResources.teamNamePlaceholder,
                 text = teamName,
                 onTextChange = {
                     teamName = it
                     profileVM.newTeamProfile.name = it
                     profileVM.checkCompleteBtn(true)
                 },
-                expanded = teamName.isNotEmpty()
+                expanded = teamName.isNotEmpty(),
+                infoRequired = true,
+                infoText = StringResources.teamNameInfo
             )
 
             SportOrPlaceAddButton(
-                placeholder = "운동종목",
+                placeholder = StringResources.sportPlaceholder,
                 sport = sport ?: listOf(),
+                infoRequired = true,
+                infoText = StringResources.sportInfo,
                 required = false
             ) {
+                keyboardController?.hide()
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.SearchSport)
             }
             SportOrPlaceAddButton(
@@ -193,8 +215,11 @@ fun TeamProfileCreateView(
                 } else {
                   ""
                 },
+                infoRequired = true,
+                infoText = StringResources.locationInfo,
                 required = false
             ) {
+                keyboardController?.hide()
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.FindLocation)
             }
 
@@ -209,17 +234,21 @@ fun TeamProfileCreateView(
                 required = false
             )
 
-            CompleteButton(text = "생성", enabled = completeBtn) {
+            CompleteButton(
+                text = StringResources.createProfileButton,
+                enabled = completeBtn,
+                loading = createLoading
+            ) {
                 profileVM.createTeamProfile(croppedImage)
                 bottomSheet.mainCloseSheet()
             }
         }
 
-        if (permissionState.status.isGranted && checkPermission) {
-            galleryVM.loadAttachments()
-            bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
-            checkPermission = false
-        }
+//        if (permissionState.status.isGranted && checkPermission) {
+//            galleryVM.loadAttachments(true)
+//            bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
+//            checkPermission = false
+//        }
 
         if (alert) {
             AlertDialog(
@@ -229,14 +258,14 @@ fun TeamProfileCreateView(
                         bottomSheet.mainCloseSheet()
                         profileVM.resetTeamProfile()
                     }) {
-                        Text(text = "확인")
+                        Text(text = StringResources.confirm)
                     }
                 },
                 dismissButton = { TextButton(onClick = { alert = false }) {
-                    Text(text = "취소")
+                    Text(text = StringResources.cancel)
                 }},
-                title = { Text(text = "작성내용 삭제") },
-                text = { Text(text = "작성중인 내용이 삭제됩니다.") }
+                title = { Text(text = StringResources.deleteFormTitle) },
+                text = { Text(text = StringResources.deleteFormMessage) }
             )
         }
     } // scaffold

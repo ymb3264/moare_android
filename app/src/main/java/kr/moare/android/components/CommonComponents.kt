@@ -18,12 +18,18 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
@@ -36,6 +42,7 @@ import coil.compose.AsyncImage
 import kr.moare.android.R
 import kr.moare.android.ui.theme.Gray200
 import kr.moare.android.ui.theme.MoareTheme
+import kr.moare.android.utils.SubCurrentBottomSheet
 
 @Composable
 fun SearchBar(
@@ -93,6 +100,7 @@ fun SearchTextField(
             .fillMaxWidth()
             .focusRequester(focusRequester = focusRequester)
             .onFocusChanged { isFocused = it.isFocused },
+        maxLines = 1,
         decorationBox = { innerTextField ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.align(Alignment.CenterVertically)) {
@@ -156,72 +164,113 @@ fun ClearButton(
 
 @Composable
 fun SportOrPlaceAddButton(
+    modifier: Modifier = Modifier,
     placeholder: String,
     sport: List<String> = listOf(),
     place: String = "",
     placeText: String = "",
     required: Boolean = true,
+    infoRequired: Boolean = false,
+    infoText: String = "",
     expanded: Boolean = false,
     onClick: () -> Unit,
 ) {
-    Button(onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .height(50.dp),
-        shape = RectangleShape,
-        colors = ButtonDefaults.buttonColors(
-            backgroundColor = Color.Transparent
-        ),
-        elevation = ButtonDefaults.elevation(
-            defaultElevation = 0.dp
-        ),
-        contentPadding = PaddingValues(0.dp)
-    ) {
-        if (required) {
-            Box(
-                Modifier
-                    .padding(end = 8.dp)
-                    .background(MaterialTheme.colors.primary)
-                    .width(2.dp)
-                    .animateContentSize(tween(500))
-                    .height(if (expanded) 50.dp else 5.dp)
-                    .align(Alignment.CenterVertically)
-            )
-        } else {
-            Box(
-                Modifier
-                    .padding(start = 12.dp)
-                    .background(Color.Transparent)
-                    .size(2.dp))
-        }
+    var dropMenuExpanded by remember { mutableStateOf(false) }
 
-        if (place.isNotEmpty()) {
-            Text(text = placeText, color = Color.Black)
-            TextDivideLine()
-            Text(text = place, color = Color.Gray, style = MaterialTheme.typography.caption)
-        } else if (sport.isNotEmpty()) {
-            for (i in 0..sport.lastIndex) {
-                Text(text = sport[i],
-                    color = Color.Black)
-                if (i != sport.lastIndex) {
-                    TextDivideLine()
+        Row(
+            modifier = modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (required) {
+                Box(
+                    Modifier
+                        .padding(end = 8.dp)
+                        .background(MaterialTheme.colors.primary)
+                        .width(2.dp)
+                        .animateContentSize(tween(500))
+                        .height(if (expanded) 50.dp else 5.dp)
+                        .align(Alignment.CenterVertically)
+                )
+            }
+
+            if (infoRequired) {
+                Column() {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_info),
+                        contentDescription = "info",
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clickable { dropMenuExpanded = true },
+                        tint = Color.Gray
+                    )
+
+                    MaterialTheme(shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(20.dp))) {
+                        DropdownMenu(
+                            expanded = dropMenuExpanded,
+                            onDismissRequest = { dropMenuExpanded = false },
+                            modifier = Modifier
+                                .background(Color.White, RoundedCornerShape(20.dp))
+                                .border(BorderStroke(1.dp, Color.Gray), RoundedCornerShape(20.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = infoText,
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.caption
+                            )
+                        }
+                    }
                 }
             }
-        } else {
-            Text(text = placeholder, color = Color.Gray)
+
+            Button(onClick = onClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RectangleShape,
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color.Transparent
+                ),
+                elevation = ButtonDefaults.elevation(
+                    defaultElevation = 0.dp
+                ),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+//                Box(
+//                    Modifier
+//                        .padding(start = 12.dp)
+//                        .background(Color.Transparent)
+//                        .size(2.dp))
+
+
+                if (place.isNotEmpty()) {
+                    Text(text = placeText, color = Color.Black)
+                    TextDivideLine()
+                    Text(text = place, color = Color.Gray, style = MaterialTheme.typography.caption)
+                } else if (sport.isNotEmpty()) {
+                    for (i in 0..sport.lastIndex) {
+                        Text(text = sport[i],
+                            color = Color.Black)
+                        if (i != sport.lastIndex) {
+                            TextDivideLine()
+                        }
+                    }
+                } else {
+                    Text(text = placeholder, color = Color.Gray)
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Icon(
+                    painter = painterResource(R.drawable.ic_arrow_right),
+                    contentDescription = "arrowRight",
+                    tint = Color.Gray,
+                    modifier = Modifier
+                        .size(20.dp),
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
-        Icon(
-            painter = painterResource(R.drawable.ic_arrow_right),
-            contentDescription = "arrowRight",
-            tint = Color.Gray,
-            modifier = Modifier
-                .size(20.dp),
-        )
-    }
 }
 
 @Composable
@@ -319,7 +368,7 @@ fun ContentTextFieldLine(modifier: Modifier = Modifier) {
 fun CompleteButton(
     text: String,
     enabled: Boolean = false,
-    loading: Boolean = true,
+    loading: Boolean = false,
     onClick: () -> Unit
 ) {
     val color = if (enabled) MaterialTheme.colors.primary else Color.Gray
@@ -341,7 +390,9 @@ fun CompleteButton(
     ) {
         if (loading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(28.dp).padding(bottom = 2.dp)
+                modifier = Modifier
+                    .size(28.dp)
+                    .padding(bottom = 2.dp)
             )
         } else {
             Text(text = text, color = color)
@@ -353,20 +404,16 @@ fun CompleteButton(
 fun EmptyView() {
     Box(
         Modifier
-//            .fillMaxSize()
             .fillMaxWidth()
             .height(1.dp)
-            .background(Color.Transparent))
+            .background(Color.Transparent)
+    )
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun CommonComponentsPreview() {
     var text by remember { mutableStateOf("sss") }
-    MoareTheme() {
-//        SearchBar(modifier = Modifier, placeholder = "test", text = text, onTextChange = { text = it })
-        CompleteButton(text = text) {
-            
-        }
+    MoareTheme {
     }
 }

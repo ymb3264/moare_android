@@ -2,15 +2,16 @@ package kr.moare.android.components
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,8 +33,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kr.moare.android.R
 import kr.moare.android.entities.Post
 import kr.moare.android.utils.PostNavItem
+import kr.moare.android.utils.StringResources
+import kr.moare.android.utils.VideoPlayer
 import kr.moare.android.utils.innerShadow
-import kr.moare.android.view.post.VideoPlayer
 import kr.moare.android.viewmodel.post.PostViewModel
 
 // PostView
@@ -111,13 +113,12 @@ fun RowScope.PostListItemView(
                     "post",
                     post
                 )
-                subNavController.navigate(PostNavItem.POSTDETAIL.name + "/0")
+                subNavController.navigate(PostNavItem.POSTDETAIL.name)
             },
-        contentAlignment = Alignment.BottomStart
     ) {
         if (post.mediaObj.first().type == "image") {
             AsyncImage(
-                model = post.imageRequest?.get(0),
+                model = post.mediaObj.first().url,
                 placeholder = painterResource(R.drawable.ic_search),
                 contentDescription = "image",
                 contentScale = ContentScale.Fit,
@@ -129,6 +130,7 @@ fun RowScope.PostListItemView(
             PostListItemShadowView(post)
         } else {
             VideoPlayer(uri = Uri.parse(post.mediaObj.first().url))
+            PostListItemShadowView(post)
         }
     }
 }
@@ -152,29 +154,49 @@ fun PostListItemShadowView(post: Post) {
                 size = Size(700F, 1100F)
             )
     )
-    Row(
-        modifier = Modifier
-            .padding(horizontal = 5.dp)
-            .padding(bottom = 5.dp)
-    ) {
-        Text(
-            text = post.content,
-            color = Color.White,
-            style = MaterialTheme.typography.body2,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(0.65f)
-        )
-        Spacer(modifier = Modifier.weight(0.1f))
-        Text(
-            text = placeName,
-            color = Color.White,
-            style = MaterialTheme.typography.body2,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(0.25f),
-            textAlign = TextAlign.Right
-        )
+    Column {
+        if (post.mediaObj.size > 1) {
+            Row() {
+                Spacer(modifier = Modifier.weight(1f))
+                Box(
+                    Modifier
+                        .padding(end = 4.dp, top = 4.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.DarkGray.copy(0.4f))
+                ) {
+                    Text(
+                        text = "+${post.mediaObj.size}",
+                        color = Color.White,
+                        modifier = Modifier.padding(4.dp),
+                        style = MaterialTheme.typography.caption
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 4.dp)
+                .padding(bottom = 4.dp)
+        ) {
+            Text(
+                text = post.content,
+                color = Color.White,
+                style = MaterialTheme.typography.body2,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = placeName,
+                color = Color.White,
+                style = MaterialTheme.typography.body2,
+                maxLines = 1,
+                textAlign = TextAlign.Right
+            )
+        }
     }
 }
 
@@ -188,7 +210,7 @@ fun RowScope.EmptyPostView() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "게시물이 더이상 없습니다.",
+            text = StringResources.noMorePost,
             style = MaterialTheme.typography.body1,
             color = Color.Gray
         )
@@ -200,6 +222,8 @@ fun RowScope.EmptyPostView() {
 @Composable
 fun BoxScope.PhotoPickerView(
     description: String,
+    infoRequired: Boolean = false,
+    infoText: String = "",
     content: String?,
     username: String?,
     uri: Uri?,
@@ -212,6 +236,7 @@ fun BoxScope.PhotoPickerView(
             add(VideoFrameDecoder.Factory())
         }
         .build()
+    var dropMenuExpanded by remember { mutableStateOf(false) }
 
     Button(
         onClick = onClick,
@@ -243,7 +268,44 @@ fun BoxScope.PhotoPickerView(
         }
     }
 
-    Text(text = description, color = Color.LightGray)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (infoRequired) {
+            Column() {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_info),
+                    contentDescription = "info",
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .clickable { dropMenuExpanded = true },
+                    tint = Color.Gray
+                )
+
+                MaterialTheme(shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(20.dp))) {
+                    DropdownMenu(
+                        expanded = dropMenuExpanded,
+                        onDismissRequest = { dropMenuExpanded = false },
+                        modifier = Modifier
+                            .background(Color.White, RoundedCornerShape(20.dp))
+                            .border(BorderStroke(1.dp, Color.Gray), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = infoText,
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.caption
+                        )
+                    }
+                }
+            }
+        }
+
+        Text(
+            text = description,
+            style = MaterialTheme.typography.body2,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+    }
 
     if (uri != null) {
         Box(
@@ -255,6 +317,7 @@ fun BoxScope.PhotoPickerView(
             if (isPreview) {
                 AsyncImage(
                     model = uri,
+                    imageLoader = imageLoader,
                     contentDescription = "image",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit
@@ -267,6 +330,7 @@ fun BoxScope.PhotoPickerView(
             } else {
                 AsyncImage(
                     model = uri,
+                    imageLoader = imageLoader,
                     contentDescription = "image",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit

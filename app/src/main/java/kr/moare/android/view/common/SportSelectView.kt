@@ -1,9 +1,7 @@
 package kr.moare.android.view.common
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -12,7 +10,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.*
@@ -29,22 +26,26 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kr.moare.android.components.SearchBar
 import kr.moare.android.components.SelectedSportHashtag
 import kr.moare.android.components.SportSelectButton
 import kr.moare.android.entities.BottomSheet
+import kr.moare.android.ui.theme.MoareTheme
+import kr.moare.android.utils.StringResources
 import kr.moare.android.utils.isScrollingUp
+import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.viewmodel.common.SportSelectViewModel
 import kr.moare.android.viewmodel.common.SearchViewModel
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun SportAddView(
+fun SportSelectView(
     bottomSheet: BottomSheet,
     sportSelectVM: SportSelectViewModel = hiltViewModel(),
-    addSport: (List<String>) -> Unit = {}
+    addSport: (List<String>, List<String>) -> Unit = { _,_ -> }
 ) {
     var query by remember { mutableStateOf("") }
 
@@ -57,15 +58,6 @@ fun SportAddView(
     val newSportList by sportSelectVM.newSportList.collectAsState()
     val selectedSport by sportSelectVM.selectedSport.collectAsState()
 
-//    val scrollState = rememberLazyGridState()
-//    var scrollEnabled by remember { mutableStateOf(true) }
-//
-//    if (!scrollState.isScrollingUp()) {
-//        if (scrollState.firstVisibleItemScrollOffset == 0) {
-//            scrollEnabled = false
-//        }
-//    }
-
     BackHandler() {
         bottomSheet.subCloseSheet()
     }
@@ -73,12 +65,14 @@ fun SportAddView(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "스포츠 종목 추가") },
+                title = { Text(text = StringResources.sportSelectNavigationTitle) },
                 backgroundColor = Color.White,
                 elevation = 0.dp,
                 actions = {
                     Button(
-                        onClick = { bottomSheet.subCloseSheet() },
+                        onClick = {
+                            bottomSheet.subCloseSheet()
+                        },
                         colors = ButtonDefaults.buttonColors(
                             backgroundColor = Color.Transparent
                         ),
@@ -86,7 +80,7 @@ fun SportAddView(
                             defaultElevation = 0.dp
                         )
                     ) {
-                        Text(text = "취소")
+                        Text(text = StringResources.cancel)
                     }
                 },
             )
@@ -95,7 +89,8 @@ fun SportAddView(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .noRippleClickable { keyboardController?.hide() },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
@@ -104,7 +99,7 @@ fun SportAddView(
                 SearchBar(modifier = Modifier
                     .padding(start = 10.dp)
                     .weight(1f),
-                    placeholder = "검색",
+                    placeholder = StringResources.search,
                     text = query,
                     isfocused = false,
                     textClear = { query = "" },
@@ -119,7 +114,7 @@ fun SportAddView(
                 )
                 Button(
                     onClick = {
-                        addSport(sportSelectVM.selectedSport.value)
+                        addSport(selectedSport, sportSelectVM.userHashtag.value)
                         bottomSheet.subCloseSheet()
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -129,7 +124,7 @@ fun SportAddView(
                         defaultElevation = 0.dp
                     )
                 ) {
-                    Text(text = "완료")
+                    Text(text = StringResources.complete)
                 }
             }
 
@@ -148,55 +143,59 @@ fun SportAddView(
             if (loading) {
                 CircularProgressIndicator()
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp)
-                        .weight(0.7f),
+                if (query == "") {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp)
+                            .weight(0.7f),
 //                    state = scrollState
-                ) {
-                    if (query == "") {
+                    ) {
                         items(sportList.keys.toList()) { sport ->
                             SportSelectButton(selected = sportList[sport], sport = sport) {
                                 sportSelectVM.selectSport(sport)
                             }
                         }
+                    }
+                } else {
+                    if (newSportList.isEmpty()) {
+                        Text(
+                            text = StringResources.add,
+                            modifier = Modifier.clickable {
+                                sportSelectVM.userHashtag.value.add("#${query}")
+                                sportSelectVM.selectedSport.value.add("#${query}")
+                                query = ""
+                            },
+                            color = MaterialTheme.colors.primary
+                        )
                     } else {
-                        items(newSportList.keys.toList()) { sport ->
-                            SportSelectButton(selected = sportList[sport], sport = sport) {
-                                sportSelectVM.newSelectSport(sport)
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp)
+                                .weight(0.7f)
+                        ) {
+                            items(newSportList.keys.toList()) { sport ->
+                                SportSelectButton(selected = sportList[sport], sport = sport) {
+                                    sportSelectVM.newSelectSport(sport)
+                                }
                             }
                         }
                     }
                 }
             } // loading
-
-//            LazyColumn(
-//                modifier = Modifier.fillMaxSize(),
-//            ) {
-//                items(searchList) {
-//                    TextButton(
-//                        onClick = {
-//                            if (addPostVM != null) {
-//                                addPostVM.sport.value.add(it)
-//                                addPostVM.post.sport.add(it)
-//                                bottomSheet.subCloseSheet()
-//                            }
-//                        },
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .height(36.dp),
-//                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Black),
-//                        contentPadding = PaddingValues(0.dp)
-//                    ) {
-//                        Text(text = it, modifier = Modifier.padding(start = 10.dp))
-//                        Spacer(Modifier.weight(1f))
-//                    }
-//                }
-//            }
         } // column
     }
 }
+
+//    val scrollState = rememberLazyGridState()
+//    var scrollEnabled by remember { mutableStateOf(true) }
+
+//    if (!scrollState.isScrollingUp()) {
+//        if (scrollState.firstVisibleItemScrollOffset == 0) {
+//            scrollEnabled = false
+//        }
+//    }
 
 fun Modifier.scrollEnabled(
     enabled: Boolean,
@@ -208,12 +207,3 @@ fun Modifier.scrollEnabled(
         ): Offset = if(enabled) Offset.Zero else available
     }
 )
-
-//@OptIn(ExperimentalMaterialApi::class)
-//@Preview(showBackground = true)
-//@Composable
-//fun SearchViewPreview() {
-//    MoareTheme {
-//        SearchView(bottomSheetScaffoldState = rememberBottomSheetScaffoldState())
-//    }
-//}

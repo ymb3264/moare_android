@@ -164,10 +164,8 @@ class LocationViewModel @Inject constructor(
                 val newList = if (locationList.isEmpty()) mutableListOf() else locationList.toMutableList()
                 newList.add(encodedLocation)
                 locationDataStore.edit {
-                    it[PreferencesKey.LOCATIONLIST] = newList.toSet()
-                }
-                locationDataStore.edit {
                     it[PreferencesKey.CURRENTLOCATION] = Json.encodeToString(location)
+                    it[PreferencesKey.LOCATIONLIST] = newList.toSet()
                 }
 
                 coroutineContext.job.cancel()
@@ -206,7 +204,9 @@ class LocationViewModel @Inject constructor(
                             it[PreferencesKey.CURRENTLOCATION] = newList.first()
                         }
                     }
+                    coroutineContext.job.cancel()
                 }
+                coroutineContext.job.cancel()
             }
         }
     }

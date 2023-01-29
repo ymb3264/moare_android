@@ -10,8 +10,10 @@ data class MessageResponse(
 
 @Serializable
 data class TokenResponse(
-    val token: String,
-    val username: String
+    val accessToken: String,
+    val refreshToken: String,
+    val username: String,
+    val userID: String
 )
 
 @Serializable

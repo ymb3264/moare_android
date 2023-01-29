@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Log
 import kr.moare.android.entities.Attachment
 import java.text.SimpleDateFormat
 import java.util.*
@@ -18,10 +19,17 @@ class StorageHelper {
             MediaStore.Files.FileColumns.SIZE,
             MediaStore.Files.FileColumns.DURATION
         )
+        val selection = (
+                MediaStore.Files.FileColumns.MEDIA_TYPE + "=" +
+                        MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE +
+                        " OR " +
+                        MediaStore.Files.FileColumns.MEDIA_TYPE + "=" +
+                        MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO
+                )
         context.contentResolver.query(
             MediaStore.Files.getContentUri("external"),
             columns,
-            null,
+            selection,
             null,
             "${MediaStore.Files.FileColumns.DATE_ADDED} DESC"
         )?.use { cursor ->
@@ -33,14 +41,39 @@ class StorageHelper {
                             add(getAttachmentFromCursor(cursor))
                         }
                     } else {
-                        if (attachment.type != "file") {
+//                        if (attachment.type != "file") {
                             add(getAttachmentFromCursor(cursor))
-                        }
+//                        }
                     }
                 }
             }
         }
         return emptyList()
+    }
+
+    public fun deleteFile(context: Context, fileName: String) {
+        val columns = arrayOf(
+            MediaStore.Files.FileColumns._ID,
+            MediaStore.Files.FileColumns.DISPLAY_NAME
+        )
+        context.contentResolver.query(
+            MediaStore.Files.getContentUri("external"),
+            columns,
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            val displayNameIndex = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME)
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID))
+                val displayName = cursor.getString(displayNameIndex)
+                if (displayName == fileName) {
+                    val contentUri = Uri.withAppendedPath(MediaStore.Files.getContentUri("external"), id.toString())
+                    context.contentResolver.delete(contentUri, null, null)
+                    return
+                }
+            }
+        }
     }
 
     private fun getAttachmentFromCursor(cursor: Cursor): Attachment {
@@ -76,7 +109,8 @@ class StorageHelper {
             mimeType = mimeType,
             title = displayName,
             size = fileSize,
-            videoLength = formatter.format(date)
+            videoStringLength = formatter.format(date),
+            videoIntLength = (duration / 1000).toInt()
         )
     }
 

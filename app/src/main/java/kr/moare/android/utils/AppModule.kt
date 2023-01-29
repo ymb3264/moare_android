@@ -26,6 +26,7 @@ import javax.inject.Singleton
 object AppModule {
     private val Context.locationDataStore: DataStore<Preferences> by preferencesDataStore(name = "location")
     private val Context.userInfoDataStore: DataStore<Preferences> by preferencesDataStore(name = "userInfo")
+    private val Context.userIdUsernameDataStore: DataStore<Preferences> by preferencesDataStore(name = "useIdUsername")
 
     private val masterKeys = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
@@ -43,6 +44,12 @@ object AppModule {
 
     @Singleton
     @Provides
+    @UserIdUsernameDataStore
+    fun provideUserIdUsernameDataStore(@ApplicationContext context: Context) : DataStore<Preferences>
+            = context.userIdUsernameDataStore
+
+    @Singleton
+    @Provides
     fun provideEncryptedSharedPreferences(@ApplicationContext context: Context) : SharedPreferences
     = EncryptedSharedPreferences.create(
         "sharedPreferences",
@@ -52,19 +59,19 @@ object AppModule {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
-    @Singleton
-    @Provides
-    fun provideChatClient(@ApplicationContext context: Context) : ChatClient {
-        val offlinePluginFactory = StreamOfflinePluginFactory(
-            config = Config(),
-            appContext = context,
-        )
-
-        return ChatClient.Builder("xyfmdhzjyjj7", context)
-            .withPlugin(offlinePluginFactory)
-            .logLevel(ChatLogLevel.ALL)
-            .build()
-    }
+//    @Singleton
+//    @Provides
+//    fun provideChatClient(@ApplicationContext context: Context) : ChatClient {
+//        val offlinePluginFactory = StreamOfflinePluginFactory(
+//            config = Config(),
+//            appContext = context,
+//        )
+//
+//        return ChatClient.Builder("cc8ubbsbnvpw", context)
+//            .withPlugin(offlinePluginFactory)
+//            .logLevel(ChatLogLevel.ALL)
+//            .build()
+//    }
 }
 
 @Qualifier
@@ -75,12 +82,20 @@ annotation class LocationDataStore
 @Retention(AnnotationRetention.BINARY)
 annotation class UserInfoDataStore
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class UserIdUsernameDataStore
+
 object PreferencesKey {
+    // locationDataStore
     val CURRENTLOCATION = stringPreferencesKey("currentLocation")
     val LOCATIONLIST = stringSetPreferencesKey("locationList")
 
-    val USERNAME =  stringPreferencesKey("username")
+    // userIdUsernameDataStore
+    val USERID = stringPreferencesKey("userId")
+    val USERNAME = stringPreferencesKey("username")
+
+    // userInfoDataStore
     val PROFILE = stringPreferencesKey("profile")
     val ACCOUNTS = stringSetPreferencesKey("accounts")
-
 }

@@ -20,8 +20,8 @@ class SportSelectViewModel @Inject constructor(
     var sportList = MutableStateFlow<MutableMap<String, Boolean>>(mutableStateMapOf())
     var newSportList = MutableStateFlow<MutableMap<String, Boolean>>(mutableStateMapOf())
 
-
     var selectedSport = MutableStateFlow<MutableList<String>>(mutableStateListOf())
+    var userHashtag = MutableStateFlow<MutableList<String>>(mutableStateListOf())
 
     val loading = MutableStateFlow(true)
 
@@ -29,17 +29,24 @@ class SportSelectViewModel @Inject constructor(
         getSportList()
     }
 
-    private fun getSportList() {
+    fun getSportList(sportHashtag: List<String> = listOf()) {
+        Log.d("sss","dsfdfsd")
         loading.value = true
         viewModelScope.launch {
             kotlin.runCatching {
                 api.getSportList()
             }.onSuccess {
                 loading.value = false
+
                 it.sportList.forEach { sport ->
                     sportList.value[sport] = false
                 }
-                Log.d("success", "$it")
+
+                if (sportHashtag.isNotEmpty()) {
+                    sportHashtag.forEach { sport ->
+                        selectSport(sport)
+                    }
+                }
             }.onFailure {
                 loading.value = false
                 Log.d("fail", "$it")
@@ -52,7 +59,9 @@ class SportSelectViewModel @Inject constructor(
             sportList.value[sport] = false
             selectedSport.value.remove(sport)
         } else {
-            sportList.value[sport] = true
+            if (sportList.value.keys.contains(sport)) {
+                sportList.value[sport] = true
+            }
             selectedSport.value.add(sport)
         }
     }
@@ -73,5 +82,9 @@ class SportSelectViewModel @Inject constructor(
         newSportList.value = sportList.value.filter { sport ->
             sport.key.contains(query)
         }.toMutableMap()
+    }
+
+    fun deleteSelectedSport() {
+
     }
 }

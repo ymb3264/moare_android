@@ -6,17 +6,22 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kr.moare.android.components.PwdTextField
 import kr.moare.android.components.StartViewButton
 import kr.moare.android.components.StartViewTextField
 import kr.moare.android.utils.StartNavItem
+import kr.moare.android.utils.StringResources
+import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.viewmodel.start.JoinViewModel
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PwdView(navController: NavController, joinVM: JoinViewModel) {
     val pwd by joinVM.pwd.collectAsState()
@@ -26,8 +31,10 @@ fun PwdView(navController: NavController, joinVM: JoinViewModel) {
 
     var pwdForCheck by remember { mutableStateOf("") }
 
-    val errorText1 = "비밀번호가 유효하지 않습니다."
-    val errorText2 = "비밀번호가 다릅니다."
+    val errorText1 = "비밀번호는 숫자, 문자, 특수문자중 2종류 이상을\n포함한 8자 이상이어야 합니다."
+    val errorText2 = StringResources.wrongPasswordForCheck
+
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     BoxWithConstraints(
         modifier = Modifier
@@ -40,12 +47,13 @@ fun PwdView(navController: NavController, joinVM: JoinViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.White)
-                .offset(y = 37.dp),
+                .offset(y = 37.dp)
+                .noRippleClickable { keyboardController?.hide() },
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "비밀번호 생성",
+                text = StringResources.passwordTitle,
                 style = MaterialTheme.typography.subtitle1,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
@@ -59,7 +67,7 @@ fun PwdView(navController: NavController, joinVM: JoinViewModel) {
             }
 
             PwdTextField(
-                placeholder = "비밀번호",
+                placeholder = StringResources.passwordPlaceholder,
                 text = pwd,
                 textClear = { joinVM.pwd.value = "" },
                 onTextChange = {
@@ -67,7 +75,7 @@ fun PwdView(navController: NavController, joinVM: JoinViewModel) {
                 }
             )
             PwdTextField(
-                placeholder = "비밀번호 확인",
+                placeholder = StringResources.passwordForCheckPlaceholder,
                 text = pwdForCheck,
                 textClear = { pwdForCheck = "" },
                 onTextChange = {

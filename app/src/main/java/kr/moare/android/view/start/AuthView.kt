@@ -1,30 +1,39 @@
 package kr.moare.android.view.start
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kr.moare.android.components.StartViewButton
 import kr.moare.android.components.StartViewTextField
 import kr.moare.android.utils.StartNavItem
+import kr.moare.android.utils.StringResources
+import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.viewmodel.start.JoinViewModel
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun AuthView(navController: NavController, joinVM: JoinViewModel) {
     val showErrorText by joinVM.showErrorText.collectAsState()
     val networkError by joinVM.networkError.collectAsState()
+    val loading by joinVM.loading.collectAsState()
 
     var clientCode by remember { mutableStateOf("") }
 
-    val errorText1 = "인증번호가 틀립니다."
-    val errorText2 = "인증번호 전송에 실패하였습니다.\n다시 시도해주세요."
+    val errorText1 = StringResources.wrongAuthCodeError
+    val errorText2 = StringResources.failedToSendAuthCode
+
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     BoxWithConstraints(
         modifier = Modifier
@@ -37,7 +46,8 @@ fun AuthView(navController: NavController, joinVM: JoinViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.White)
-                .offset(y = 37.dp),
+                .offset(y = 37.dp)
+                .noRippleClickable { keyboardController?.hide() },
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -61,9 +71,17 @@ fun AuthView(navController: NavController, joinVM: JoinViewModel) {
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier.height(30.dp)
             ) {
-                Text(text = "인증 코드 재전송",
-                color = Color.Blue,
-                fontSize = 12.sp)
+                if (loading) {
+                    CircularProgressIndicator(modifier = Modifier.size(14.dp))
+                } else {
+                    Text(text = "인증 코드 재전송",
+                        color = MaterialTheme.colors.primary,
+                        fontSize = 12.sp,
+                        modifier = Modifier.clickable {
+                            joinVM.getEmailCode()
+                        }
+                    )
+                }
             }
 
             if (showErrorText || networkError) {
@@ -75,7 +93,7 @@ fun AuthView(navController: NavController, joinVM: JoinViewModel) {
             }
 
             StartViewTextField(
-                placeholder = "인증 코드",
+                placeholder = StringResources.authCodePlaceholder,
                 text = clientCode,
                 textClear = { clientCode = "" },
                 onTextChange = { clientCode = it }

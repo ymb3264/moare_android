@@ -2,13 +2,18 @@ package kr.moare.android.view.post
 
 import android.os.ProxyFileDescriptorCallback
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,8 +21,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,11 +43,17 @@ import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.HorizontalPagerIndicator
 import com.google.accompanist.pager.rememberPagerState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kr.moare.android.entities.Profile
 import kr.moare.android.entities.SelectedMedia
+import kr.moare.android.entities.UpdatePost
+import kr.moare.android.utils.MainNavItem
+import kr.moare.android.utils.VideoPlayer
 import kr.moare.android.utils.innerShadow
+import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.viewmodel.common.GalleryViewModel
 
 @OptIn(ExperimentalPagerApi::class)
@@ -46,21 +61,18 @@ import kr.moare.android.viewmodel.common.GalleryViewModel
 fun PostCreateDetailView(
     navController: NavController,
     postCreateVM: PostCreateViewModel,
-//    galleryVM: GalleryViewModel
-    selectedMediaList: Array<SelectedMedia>,
-//    content: String,
-//    username: String,
-//    place: String,
+    selectedMediaList: Array<SelectedMedia>
 ) {
     val pagerState = rememberPagerState()
+    val coroutineScope = rememberCoroutineScope()
 
     // 더보기
+    val configuration = LocalConfiguration.current
+    val localDensity = LocalDensity.current
+    val screenHeight = configuration.screenHeightDp
     var overflowed by remember { mutableStateOf(false)}
     var moreContent by remember { mutableStateOf(false) }
     var contentHeight by remember { mutableStateOf(0.dp) }
-
-    // profileImage param으로 가져오기
-    val profile by postCreateVM.profileFlow.collectAsState(initial = "")
 
 //    val selectedMediaList by galleryVM.selectedMediaList.collectAsState()
 
@@ -69,9 +81,10 @@ fun PostCreateDetailView(
 
     val contentResolver = LocalContext.current.contentResolver
 
+    var playButtonPresented by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.BottomStart
     ) {
         HorizontalPager(
             count = selectedMediaList.size,
@@ -79,7 +92,63 @@ fun PostCreateDetailView(
             modifier = Modifier
         ) { page ->
             if (selectedMediaList[page].type == "video") {
-                VideoPlayer(uri = selectedMediaList[page].uri)
+                var isPaused by remember { mutableStateOf(false) }
+
+                VideoPlayer(uri = selectedMediaList[page].uri, isPaused)
+                Box(
+                    modifier = Modifier
+                        .clip(RectangleShape)
+                        .fillMaxSize()
+                        .innerShadow(
+                            blur = 20.dp,
+                            color = Color.Black.copy(0.7f),
+                            offsetX = 60.dp,
+                            offsetY = contentHeight + 60.dp,
+                            spread = 10.dp,
+                            offset = Offset(0F, 0F),
+                            size = Size(1300F, 2400F)
+                        )
+                        .noRippleClickable {
+                            coroutineScope.launch {
+                                isPaused = !isPaused
+                                playButtonPresented = !playButtonPresented
+
+                                delay(500)
+                                playButtonPresented = !playButtonPresented
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedVisibility(
+                        visible = playButtonPresented,
+                        exit = fadeOut(animationSpec = tween(400, easing = FastOutLinearInEasing)),
+                        enter = fadeIn(animationSpec = tween(100, easing = LinearEasing))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .size(50.dp)
+                                .background(Color.Black.copy(0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isPaused) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_pause),
+                                    contentDescription = "pause",
+                                    modifier = Modifier.size(30.dp),
+                                    tint = Color.White
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_play_arrow),
+                                    contentDescription = "play",
+                                    modifier = Modifier.size(30.dp),
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
             } else {
                 AsyncImage(
                     model = selectedMediaList[page].uri,
@@ -91,10 +160,10 @@ fun PostCreateDetailView(
                             blur = 20.dp,
                             color = Color.Black.copy(0.7f),
                             offsetX = 60.dp,
-                            offsetY = 184.dp + contentHeight,
+                            offsetY = contentHeight + 60.dp,
                             spread = 10.dp,
                             offset = Offset(0F, 0F),
-                            size = Size(1300F, 2400f)
+                            size = Size(1300F, 2400F)
                         )
                 )
             }
@@ -103,6 +172,54 @@ fun PostCreateDetailView(
         Column(
             modifier = Modifier.padding(horizontal = 12.dp)
         ) {
+            Row() {
+                Spacer(modifier = Modifier.weight(1f))
+
+                Column() {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.Black.copy(0.2f))
+                            .size(30.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                Modifier
+                                    .clip(CircleShape)
+                                    .size(4.dp)
+                                    .background(Color.White)
+                            )
+                            Box(
+                                Modifier
+                                    .padding(vertical = 2.dp)
+                                    .clip(CircleShape)
+                                    .size(4.dp)
+                                    .background(Color.White)
+                            )
+                            Box(
+                                Modifier
+                                    .clip(CircleShape)
+                                    .size(4.dp)
+                                    .background(Color.White)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier
+                    .weight(1f)
+                    .onGloballyPositioned { coordinates ->
+                        val height = with(localDensity) { coordinates.size.height.toDp() }
+                        contentHeight = screenHeight.dp - height
+                    }
+            )
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -116,24 +233,22 @@ fun PostCreateDetailView(
                             .clip(CircleShape)
                             .size(36.dp)
                     ) {
-                        if (profile.isNotEmpty()) {
-                            if (Json.decodeFromString<Profile>(profile).profileImage.isEmpty()) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_person),
-                                    contentDescription = "",
-                                    tint = Color.Gray,
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .background(Color.LightGray),
-                                )
-                            } else {
-                                AsyncImage(
-                                    model = Json.decodeFromString<Profile>(profile).profileImage,
-                                    contentDescription = "image",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Fit
-                                )
-                            }
+                        if (postCreateVM.myProfile.profileImage.isEmpty()) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_person),
+                                contentDescription = "",
+                                tint = Color.Gray,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color.LightGray),
+                            )
+                        } else {
+                            AsyncImage(
+                                model = postCreateVM.myProfile.profileImage,
+                                contentDescription = "image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
                         }
                     }
                     Text(
@@ -204,17 +319,16 @@ fun PostCreateDetailView(
                         modifier = Modifier.weight(0.8f, false),
                         onTextLayout = {
                             overflowed = it.hasVisualOverflow
-                            contentHeight = (it.lineCount * 16).dp
                         }
                     )
 
                     if (overflowed) {
                         Text(
                             text = " ...더보기",
+                            color = Color.White,
                             modifier = Modifier.weight(0.2f),
                             style = MaterialTheme.typography.caption
                         )
-
                     }
                 }
 
@@ -231,11 +345,10 @@ fun PostCreateDetailView(
     }
 }
 
-
 //@Preview(showBackground = true)
 //@Composable
-//fun PostAddDetailViewPreview() {
+//fun TextPreview() {
 //    MoareTheme {
-//        PostCreateDetailView(navController = rememberNavController(), postCreateVM = hiltViewModel())
+//        Test()
 //    }
 //}

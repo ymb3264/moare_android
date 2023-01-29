@@ -24,6 +24,7 @@ import kr.moare.android.components.TextDivideLine
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.entities.UserDefaultLocation
 import kr.moare.android.utils.MainCurrentBottomSheet
+import kr.moare.android.utils.StringResources
 import kr.moare.android.viewmodel.common.LocationViewModel
 import kr.moare.android.viewmodel.post.PostViewModel
 
@@ -111,7 +112,7 @@ fun LocationListView(
             onClick = { bottomSheet.modalCloseSheet(MainCurrentBottomSheet.FindLocation) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("지역 변경하기")
+            Text(StringResources.changeLocation)
         }
     }
 }

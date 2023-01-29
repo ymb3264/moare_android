@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kr.moare.android.utils.PreferencesKey
+import kr.moare.android.utils.UserIdUsernameDataStore
 import kr.moare.android.utils.UserInfoDataStore
 import java.text.SimpleDateFormat
 import java.util.*
@@ -30,11 +31,11 @@ import javax.inject.Inject
 class JoinViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val encryptedSharedPreferences: SharedPreferences,
-    @UserInfoDataStore private val userInfoDataStore: DataStore<Preferences>,
+    @UserIdUsernameDataStore private val userIdUsernameDataStore: DataStore<Preferences>
 ) : ViewModel() {
-    val api: JoinAPI = JoinAPI()
+    private val api: JoinAPI = JoinAPI()
 
-    var account = JoinAccount(email = "", createdAt = "", username = "", password = "")
+    var account = JoinAccount(userID = "", createdAt = "", password = "", username = "", allTermsAgreed = false)
     var servercode = ""
 
     val email = MutableStateFlow("")
@@ -45,35 +46,32 @@ class JoinViewModel @Inject constructor(
     val pwdBtn = MutableStateFlow(false)
     val usernameBtn = MutableStateFlow(false)
 
+    val loading = MutableStateFlow(false)
+    val usernameLoading = MutableStateFlow(false)
+
     val showErrorText = MutableStateFlow(false)
     val showErrorText2 = MutableStateFlow(false)
     val networkError = MutableStateFlow(false)
-
-    val showAlert = MutableStateFlow(false)
-
-    val loading = MutableStateFlow(false)
-    val usernameLoading = MutableStateFlow(false)
 
     val joinSuccess = MutableStateFlow(false)
 
     private val pattern = Patterns.EMAIL_ADDRESS
 
     // api
-    fun getEmailCode(goNext: () -> Unit) {
+    fun getEmailCode(goNext: () -> Unit = {}) {
         loading.value = true
         viewModelScope.launch {
             kotlin.runCatching {
-                account.email = email.value
-                api.getEmailCode(account)
+                api.getEmailCode(email.value)
             }.onSuccess {
                 resetError()
                 loading.value = false
+                account.userID = email.value
                 servercode = it.serverCode.toString()
                 goNext()
                 Log.d("success", "$it")
             }.onFailure {
                 loading.value = false
-
                 Log.d("fail", "$it")
             }
         }
@@ -97,36 +95,38 @@ class JoinViewModel @Inject constructor(
                 Log.d("success", "$it")
             }.onFailure {
                 usernameLoading.value = false
+                showErrorText2.value = true
+                usernameBtn.value = false
                 Log.d("fail", "$it")
             }
         }
     }
 
-    fun join(confirmed: Boolean, showSplash: () -> Unit) {
-        if (confirmed) {
-            showSplash()
+    fun join(saveLoginInfo: Boolean, showSplash: () -> Unit) {
+        showSplash()
 
-            val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.KOREA)
-            account.createdAt = formatter.format(Date())
+        val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.KOREA)
+        account.createdAt = formatter.format(Date())
 
-            viewModelScope.launch {
-                kotlin.runCatching {
-                    api.join(account)
-                }.onSuccess { response ->
-                    joinSuccess.value = true
+        viewModelScope.launch {
+            kotlin.runCatching {
+                api.join(account)
+            }.onSuccess { response ->
+                joinSuccess.value = true
 
-                    encryptedSharedPreferences.edit().putString("token", response.token).apply()
-                    userInfoDataStore.edit {
-                        it[PreferencesKey.USERNAME] = response.username
-                    }
-
-                    Log.d("success", "$response")
-                }.onFailure {
-                    Log.d("fail", "$it")
+                if (saveLoginInfo) {
+                    encryptedSharedPreferences.edit().putString("AccessToken", response.accessToken).apply()
+                    encryptedSharedPreferences.edit().putString("RefreshToken", response.refreshToken).apply()
                 }
+                userIdUsernameDataStore.edit {
+                    it[PreferencesKey.USERID] = response.userID
+                    it[PreferencesKey.USERNAME] = response.username
+                }
+
+                Log.d("success", "$response")
+            }.onFailure {
+                Log.d("fail", "$it")
             }
-        } else {
-            showAlert.value = true
         }
     }
 
@@ -138,8 +138,8 @@ class JoinViewModel @Inject constructor(
     }
 
     fun checkCode(clientCode: String, goNext: () -> Unit) {
+        showErrorText.value = false
         if (clientCode == servercode) {
-            showErrorText.value = false
             goNext()
         } else {
             resetError()
@@ -200,7 +200,7 @@ class JoinViewModel @Inject constructor(
         networkError.value = true
     }
 
-    fun resetError() {
+    private fun resetError() {
         showErrorText.value = false
         showErrorText2.value = false
         networkError.value = false

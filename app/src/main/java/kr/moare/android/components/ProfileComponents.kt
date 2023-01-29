@@ -3,13 +3,16 @@ package kr.moare.android.components
 import android.net.Uri
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -22,91 +25,134 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import kr.moare.android.R
 import kr.moare.android.entities.Post
+import kr.moare.android.utils.StringResources
 
 @Composable
 fun ProfileImageAddButton(
     url: String,
     uri: Uri?,
-    onClick: () -> Unit
+    isDefaultImage: Boolean,
+    onClick1: () -> Unit,
+    onClick2: () -> Unit
 ) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            backgroundColor = Color.Transparent
-        ),
-        elevation = ButtonDefaults.elevation(
-            defaultElevation = 0.dp
-        ),
-        modifier = Modifier
-            .padding(bottom = 10.dp)
-    ) {
-        Box(modifier = Modifier
-            .clip(CircleShape)
-            .size(180.dp)
-            .border(
-                width = 1.dp,
-                color = if (uri != null) Color.Transparent else Color.Gray,
-                shape = CircleShape
+    var dropMenuExpanded by remember { mutableStateOf(false) }
+
+    Column() {
+        Button(
+            onClick = {
+                if (isDefaultImage) {
+                    onClick1()
+                } else {
+                    if (uri != null || url.isNotEmpty()) {
+                        dropMenuExpanded = true
+                    } else {
+                        onClick1()
+                    }
+                }
+            },
+            colors = ButtonDefaults.buttonColors(
+                backgroundColor = Color.Transparent
             ),
-            contentAlignment = Alignment.Center
+            elevation = ButtonDefaults.elevation(
+                defaultElevation = 0.dp
+            ),
+            modifier = Modifier
+                .padding(bottom = 10.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .size(70.dp)
-                    .border(
-                        width = 1.dp,
-                        color = Color.Gray,
-                        shape = CircleShape
-                    )
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+            Box(modifier = Modifier
+                .clip(CircleShape)
+                .size(180.dp)
+                .border(
+                    width = 1.dp,
+                    color = if (uri != null || url.isNotEmpty()) Color.Transparent else Color.Gray,
+                    shape = CircleShape
+                ),
+                contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier
-                    .clip(RectangleShape)
-                    .height(2.dp)
-                    .width(54.dp)
-                    .background(Color.Transparent))
-                Box(modifier = Modifier
-                    .clip(RectangleShape)
-                    .height(70.dp)
-                    .width(36.dp)
-                    .background(Color.White))
-                Box(modifier = Modifier
-                    .clip(RectangleShape)
-                    .height(70.dp)
-                    .width(35.dp)
-                    .background(Color.Transparent))
-                Box(modifier = Modifier
-                    .clip(RectangleShape)
-                    .height(2.dp)
-                    .width(55.dp)
-                    .background(Color.Gray))
-            }
-
-            Text(text = "사진 추가", color = Color.Gray, fontSize = 13.sp)
-
-            if (uri != null || url.isNotEmpty()) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.White),
-                    contentAlignment = Alignment.BottomStart
+                        .clip(CircleShape)
+                        .size(70.dp)
+                        .border(
+                            width = 1.dp,
+                            color = Color.Gray,
+                            shape = CircleShape
+                        )
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AsyncImage(
-                        model = uri ?: url,
-                        contentDescription = "image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
+                    Box(modifier = Modifier
+                        .clip(RectangleShape)
+                        .height(2.dp)
+                        .width(54.dp)
+                        .background(Color.Transparent))
+                    Box(modifier = Modifier
+                        .clip(RectangleShape)
+                        .height(70.dp)
+                        .width(36.dp)
+                        .background(Color.White))
+                    Box(modifier = Modifier
+                        .clip(RectangleShape)
+                        .height(70.dp)
+                        .width(35.dp)
+                        .background(Color.Transparent))
+                    Box(modifier = Modifier
+                        .clip(RectangleShape)
+                        .height(2.dp)
+                        .width(55.dp)
+                        .background(Color.Gray))
                 }
+
+                Text(text = StringResources.addProfilePhoto, color = Color.Gray, fontSize = 13.sp)
+
+                if (!isDefaultImage && (uri != null || url.isNotEmpty())) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.White),
+                        contentAlignment = Alignment.BottomStart
+                    ) {
+                        AsyncImage(
+                            model = uri ?: url,
+                            contentDescription = "image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+            }
+        }
+
+        DropdownMenu(
+            expanded = dropMenuExpanded,
+            onDismissRequest = { dropMenuExpanded = false },
+        ) {
+            DropdownMenuItem(
+                onClick = {
+                    dropMenuExpanded = false
+                    onClick1()
+                }
+            ) {
+                Text(text = "라이브러리에서 선택")
+            }
+
+            DropdownMenuItem(
+                onClick = {
+                    dropMenuExpanded = false
+                    onClick2()
+                }
+            ) {
+                Text(text = "기본이미지로 변경")
             }
         }
     }
@@ -122,10 +168,13 @@ fun ProfileTextField(
     expanded: Boolean = false,
     readOnly: Boolean = false,
     loading: Boolean = false,
+    infoRequired: Boolean = false,
+    infoText: String = "",
     onTextChange: (String) -> Unit
 ) {
     val focusRequester by remember { mutableStateOf(FocusRequester()) }
     var isFocused by remember { mutableStateOf(false) }
+    var dropMenuExpanded by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -152,6 +201,36 @@ fun ProfileTextField(
                     .size(2.dp))
         }
 
+        if (infoRequired) {
+            Column() {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_info),
+                    contentDescription = "info",
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .clickable { dropMenuExpanded = true },
+                    tint = Color.Gray
+                )
+
+                MaterialTheme(shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(20.dp))) {
+                    DropdownMenu(
+                        expanded = dropMenuExpanded,
+                        onDismissRequest = { dropMenuExpanded = false },
+                        modifier = Modifier
+                            .background(Color.White, RoundedCornerShape(20.dp))
+                            .border(BorderStroke(1.dp, Color.Gray), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = infoText,
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.caption
+                        )
+                    }
+                }
+            }
+        }
+
         BasicTextField(
             value = text,
             onValueChange = onTextChange,
@@ -162,6 +241,7 @@ fun ProfileTextField(
                 .focusRequester(focusRequester = focusRequester)
                 .onFocusChanged { isFocused = it.isFocused }
                 .align(Alignment.CenterVertically),
+            maxLines = 1,
             decorationBox = { innerTextField ->
                 if (text.isEmpty() && !isFocused) {
                     Text(
@@ -192,7 +272,7 @@ fun ProfileTextField(
 
 @Composable
 fun RowScope.ProfileButton(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     text: String,
     enabled: Boolean = true,
     loading: Boolean = false,
@@ -217,7 +297,7 @@ fun RowScope.ProfileButton(
         ProfileButtonLine(Modifier, enabled)
         Spacer(Modifier.weight(1f))
         if (loading) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = if (enabled) MaterialTheme.colors.primary else Color.Gray)
         } else {
             Text(text = text, color = if (enabled) MaterialTheme.colors.primary else Color.Gray)
         }

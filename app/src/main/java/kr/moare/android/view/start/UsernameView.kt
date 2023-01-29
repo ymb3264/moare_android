@@ -6,9 +6,11 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -16,8 +18,11 @@ import androidx.navigation.NavController
 import kr.moare.android.components.StartViewButton
 import kr.moare.android.utils.StartNavItem
 import kr.moare.android.components.StartViewTextField
+import kr.moare.android.utils.StringResources
+import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.viewmodel.start.JoinViewModel
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun UsernameView(
     navController: NavController,
@@ -30,11 +35,12 @@ fun UsernameView(
     val loading by joinVM.usernameLoading.collectAsState()
     val networkError by joinVM.networkError.collectAsState()
 
-    val errorText1 = "사용자 이름에는 영어 대/소문자, 숫자,\n밑줄(_) 및 마침표(.)만 사용할 수 있습니다."
-    val errorText2 = "이미 사용중인 이름입니다"
+    val errorText1 = StringResources.usernameValidationError
+    val errorText2 = StringResources.existingUsernameError
 
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     BoxWithConstraints(
         modifier = Modifier
@@ -47,11 +53,12 @@ fun UsernameView(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.White)
-                .offset(y = 37.dp),
+                .offset(y = 37.dp)
+                .noRippleClickable { keyboardController?.hide() },
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "사용자이름 생성",
+            Text(text = StringResources.usernameTitle,
                 fontSize = 18.sp,
                 modifier = Modifier.padding(bottom = 10.dp))
 
@@ -71,7 +78,7 @@ fun UsernameView(
             )
 
             StartViewButton(usernameBtn) {
-                navController.navigate(StartNavItem.SportSelect.name)
+                navController.navigate(StartNavItem.JoinSportAdd.name)
             }
             Spacer(modifier = Modifier.height(height/2))
         }

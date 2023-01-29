@@ -8,43 +8,64 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.getstream.sdk.chat.utils.extensions.isDirectMessaging
+import io.getstream.chat.android.client.ChatClient
+import io.getstream.chat.android.client.models.Attachment
+import io.getstream.chat.android.client.models.ChannelCapabilities
 import kr.moare.android.R
 import kr.moare.android.ui.theme.Moare
 import io.getstream.chat.android.common.state.MessageMode
+import io.getstream.chat.android.common.state.ValidationError
+import io.getstream.chat.android.compose.state.messages.attachments.AttachmentsPickerMode
 import io.getstream.chat.android.compose.state.messages.list.DateSeparatorState
 import io.getstream.chat.android.compose.state.messages.list.MessageItemGroupPosition
 import io.getstream.chat.android.compose.state.messages.list.MessageItemState
 import io.getstream.chat.android.compose.ui.attachments.content.MessageAttachmentsContent
 import io.getstream.chat.android.compose.ui.components.avatar.ChannelAvatar
 import io.getstream.chat.android.compose.ui.components.avatar.UserAvatar
+import io.getstream.chat.android.compose.ui.components.composer.CoolDownIndicator
 import io.getstream.chat.android.compose.ui.components.composer.MessageInput
 import io.getstream.chat.android.compose.ui.components.messages.MessageBubble
 import io.getstream.chat.android.compose.ui.messages.attachments.AttachmentsPicker
+import io.getstream.chat.android.compose.ui.messages.attachments.factory.AttachmentsPickerTabFactory
 import io.getstream.chat.android.compose.ui.messages.composer.MessageComposer
 import io.getstream.chat.android.compose.ui.messages.list.MessageContainer
 import io.getstream.chat.android.compose.ui.messages.list.MessageList
 import io.getstream.chat.android.compose.ui.theme.ChatTheme
 import io.getstream.chat.android.compose.ui.theme.StreamShapes
+import io.getstream.chat.android.compose.ui.util.mirrorRtl
 import io.getstream.chat.android.compose.viewmodel.messages.AttachmentsPickerViewModel
 import io.getstream.chat.android.compose.viewmodel.messages.MessageComposerViewModel
 import io.getstream.chat.android.compose.viewmodel.messages.MessageListViewModel
 import io.getstream.chat.android.compose.viewmodel.messages.MessagesViewModelFactory
+import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kr.moare.android.entities.Profile
+import kr.moare.android.utils.StringResources
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -64,6 +85,7 @@ class MessagesActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val channelId = intent.getStringExtra(KEY_CHANNEL_ID)
+        val profile = intent.getStringExtra(PROFILE) ?: ""
 
         if (channelId == null) {
             finish()
@@ -80,7 +102,7 @@ class MessagesActivity : ComponentActivity() {
                     inputField = RectangleShape,
                 ),
             ) {
-                CustomMessageScreen()
+                CustomMessageScreen(Json.decodeFromString(profile))
 //                MessagesScreen(channelId = channelId)
             }
         }
@@ -88,19 +110,26 @@ class MessagesActivity : ComponentActivity() {
 
     companion object {
         private const val KEY_CHANNEL_ID = "channelId"
+        private const val PROFILE = "profile"
 
-        fun getIntent(context: Context, channelId: String): Intent {
+        fun getIntent(context: Context, channelId: String, profile: Profile): Intent {
             return Intent(context, MessagesActivity::class.java).apply {
                 putExtra(KEY_CHANNEL_ID, channelId)
+                putExtra(PROFILE, Json.encodeToString(profile))
             }
         }
     }
 
     @Composable
-    fun CustomMessageScreen() {
+    fun CustomMessageScreen(
+        profile: Profile
+    ) {
         val isShowingAttachments = attachmentsPickerViewModel.isShowingAttachments
         val selectedMessagesState = listViewModel.currentMessagesState.selectedMessageState
         val user by listViewModel.user.collectAsState()
+
+        var directMessageDeleteAlert by remember { mutableStateOf(false) }
+        var teamChannelDeleteAlert by remember { mutableStateOf(false) }
         
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
@@ -110,15 +139,15 @@ class MessagesActivity : ComponentActivity() {
                     backgroundColor = Color.Transparent
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        IconButton(
-                            onClick = { /*TODO*/ },
-                            modifier = Modifier.fillMaxHeight()
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_arrow_back),
-                                contentDescription = "goBackIcon"
-                            )
-                        }
+//                        IconButton(
+//                            onClick = { /*TODO*/ },
+//                            modifier = Modifier.fillMaxHeight()
+//                        ) {
+//                            Icon(
+//                                painter = painterResource(id = R.drawable.ic_arrow_back),
+//                                contentDescription = "goBackIcon"
+//                            )
+//                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxSize(),
@@ -149,6 +178,25 @@ class MessagesActivity : ComponentActivity() {
                                 color = ChatTheme.colors.textHighEmphasis,
                             )
                         }
+
+                        Row() {
+                            Spacer(modifier = Modifier.weight(1f))
+                            IconButton(
+                                onClick = {
+                                    if (listViewModel.channel.isDirectMessaging()) {
+                                        directMessageDeleteAlert = true
+                                    } else {
+                                        teamChannelDeleteAlert = true
+                                    }
+                                },
+                                modifier = Modifier.fillMaxHeight()
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_delete),
+                                    contentDescription = "delete"
+                                )
+                            }
+                        }
                     }
                 }
             },
@@ -170,11 +218,11 @@ class MessagesActivity : ComponentActivity() {
                     itemContent = {
                         MessageContainer(
                             messageListItem = it,
-                            messageItemContent = {
-                                CustomMessageItem(
-                                    it
-                                )
-                            },
+//                            messageItemContent = {
+//                                CustomMessageItem(
+//                                    it
+//                                )
+//                            },
                             dateSeparatorContent = {
                                 CustomDateSeparator(it)
                             }
@@ -184,7 +232,21 @@ class MessagesActivity : ComponentActivity() {
             }
 
             if (isShowingAttachments) {
-                AttachmentsPicker(
+//                AttachmentsPicker(
+//                    attachmentsPickerViewModel = attachmentsPickerViewModel,
+//                    modifier = Modifier
+//                        .align(Alignment.BottomCenter)
+//                        .height(350.dp),
+//                    onAttachmentsSelected = { attachments ->
+//                        attachmentsPickerViewModel.changeAttachmentState(false)
+//                        composerViewModel.addSelectedAttachments(attachments)
+//                    },
+//                    onDismiss = {
+//                        attachmentsPickerViewModel.changeAttachmentState(false)
+//                        attachmentsPickerViewModel.dismissAttachments()
+//                    }
+//                )
+                CustomAttachmentsPicker(
                     attachmentsPickerViewModel = attachmentsPickerViewModel,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -199,6 +261,41 @@ class MessagesActivity : ComponentActivity() {
                     }
                 )
             }
+
+            if (directMessageDeleteAlert) {
+                AlertDialog(
+                    onDismissRequest = { directMessageDeleteAlert = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            directMessageDeleteAlert = false
+                            ChatClient.instance().deleteChannel("messaging", listViewModel.channel.cid)
+                        }) {
+                            Text(text = StringResources.confirm, color = Color(0xFFF36575))
+                        }
+                    },
+                    dismissButton = { TextButton(onClick = { directMessageDeleteAlert = false }) {
+                        Text(text = StringResources.cancel, color = Color(0xFFF36575))
+                    }
+                    },
+                    title = { Text(text = StringResources.deleteChannelAlertTitle) },
+                    text = { Text(text = StringResources.deleteChannelAlertMessage) }
+                )
+            }
+
+            if (teamChannelDeleteAlert) {
+                AlertDialog(
+                    onDismissRequest = { teamChannelDeleteAlert = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            teamChannelDeleteAlert = false
+                        }) {
+                            Text(text = StringResources.confirm)
+                        }
+                    },
+                    title = { Text(text = StringResources.leaveTeamChannelAlertTitle) },
+                    text = { Text(text = StringResources.leaveTeamChannelAlertMessage) }
+                )
+            }
         }
     }
 
@@ -209,25 +306,28 @@ class MessagesActivity : ComponentActivity() {
                 .fillMaxWidth()
                 .wrapContentHeight(),
             viewModel = composerViewModel,
-//            integrations = {
-//                IconButton(
-//                    onClick = {  },
-//                    modifier = Modifier
-//                        .size(48.dp)
-//                        .padding(12.dp)
-//                ) {
-//                    Icon(
-//                        painter = painterResource(id = R.drawable.ic_arrow_back),
-//                        contentDescription = "goBackIcon"
-//                    )
-//                }
-//            },
+            integrations = {
+                IconButton(
+                    onClick = { attachmentsPickerViewModel.changeAttachmentState(true) },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(12.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_photo),
+                        contentDescription = "photo",
+                        tint = Color.Gray
+                    )
+                }
+            },
             input = { inputState ->
                 MessageInput(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(7f)
                         .padding(start = 8.dp)
+                        .border(border = BorderStroke(1.dp, ChatTheme.colors.borders), shape = RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .align(Alignment.CenterVertically),
                     messageComposerState = inputState,
                     onValueChange = { composerViewModel.setMessageInput(it) },
@@ -246,8 +346,18 @@ class MessagesActivity : ComponentActivity() {
                     }
                 )
             },
-            onAttachmentsClick = {
-                attachmentsPickerViewModel.changeAttachmentState(true)
+            trailingContent = {
+                CustomMessageComposerTrailingContent(
+                    value = it.inputValue,
+                    coolDownTime = it.coolDownTime,
+                    validationErrors = it.validationErrors,
+                    attachments = it.attachments,
+                    ownCapabilities = it.ownCapabilities,
+                    onSendMessage = { input, attachments ->
+                        val message = composerViewModel.buildNewMessage(input, attachments)
+                        composerViewModel.sendMessage(message)
+                    }
+                )
             }
         )
     }
@@ -440,6 +550,146 @@ class MessagesActivity : ComponentActivity() {
                 text = formatter.format(dateSeparator.date),
                 color = Color.Gray,
                 style = ChatTheme.typography.footnoteBold
+            )
+        }
+    }
+
+    @Composable
+    fun CustomAttachmentsPicker(
+        attachmentsPickerViewModel: AttachmentsPickerViewModel,
+        onAttachmentsSelected: (List<Attachment>) -> Unit,
+        onDismiss: () -> Unit,
+        modifier: Modifier = Modifier,
+        tabFactories: List<AttachmentsPickerTabFactory> = ChatTheme.attachmentsPickerTabFactories,
+        shape: Shape = ChatTheme.shapes.bottomSheet,
+    ) {
+        var selectedTabIndex by remember { mutableStateOf(0) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(ChatTheme.colors.overlay)
+                .clickable(
+                    onClick = onDismiss,
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                )
+        ) {
+            Card(
+                modifier = modifier.clickable(
+                    indication = null,
+                    onClick = {},
+                    interactionSource = remember { MutableInteractionSource() }
+                ),
+                elevation = 4.dp,
+                shape = shape,
+                backgroundColor = ChatTheme.colors.inputBackground,
+            ) {
+                Column {
+                    CustomAttachmentPickerOptions(
+                        hasPickedAttachments = attachmentsPickerViewModel.hasPickedAttachments,
+                        tabFactories = tabFactories,
+                        tabIndex = selectedTabIndex,
+                        onTabClick = { index, attachmentPickerMode ->
+                            selectedTabIndex = index
+                            attachmentsPickerViewModel.changeAttachmentPickerMode(attachmentPickerMode) { false }
+                        },
+                        onSendAttachmentsClick = {
+                            onAttachmentsSelected(attachmentsPickerViewModel.getSelectedAttachments())
+                        },
+                    )
+
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                        color = ChatTheme.colors.barsBackground,
+                    ) {
+                        tabFactories.getOrNull(selectedTabIndex)
+                            ?.pickerTabContent(
+                                attachments = attachmentsPickerViewModel.attachments,
+                                onAttachmentItemSelected = attachmentsPickerViewModel::changeSelectedAttachments,
+                                onAttachmentsChanged = { attachmentsPickerViewModel.attachments = it },
+                                onAttachmentsSubmitted = {
+                                    onAttachmentsSelected(attachmentsPickerViewModel.getAttachmentsFromMetaData(it))
+                                },
+                            )
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun CustomAttachmentPickerOptions(
+        hasPickedAttachments: Boolean,
+        tabFactories: List<AttachmentsPickerTabFactory>,
+        tabIndex: Int,
+        onTabClick: (Int, AttachmentsPickerMode) -> Unit,
+        onSendAttachmentsClick: () -> Unit,
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+
+            IconButton(
+                enabled = hasPickedAttachments,
+                onClick = onSendAttachmentsClick,
+                content = {
+                    val layoutDirection = LocalLayoutDirection.current
+
+                    Icon(
+                        modifier = Modifier
+                            .weight(1f)
+                            .mirrorRtl(layoutDirection = layoutDirection),
+                        painter = painterResource(id = R.drawable.stream_compose_ic_circle_left),
+                        contentDescription = stringResource(id = R.string.stream_compose_send_attachment),
+                        tint = if (hasPickedAttachments) {
+                            ChatTheme.colors.primaryAccent
+                        } else {
+                            ChatTheme.colors.textLowEmphasis
+                        }
+                    )
+                }
+            )
+        }
+    }
+
+    @Composable
+    fun CustomMessageComposerTrailingContent(
+        value: String,
+        coolDownTime: Int,
+        attachments: List<Attachment>,
+        validationErrors: List<ValidationError>,
+        ownCapabilities: Set<String>,
+        onSendMessage: (String, List<Attachment>) -> Unit,
+    ) {
+        val isSendButtonEnabled = ownCapabilities.contains(ChannelCapabilities.SEND_MESSAGE)
+        val isInputValid by lazy { (value.isNotBlank() || attachments.isNotEmpty()) && validationErrors.isEmpty() }
+        val description = stringResource(id = R.string.stream_compose_cd_send_button)
+
+        if (coolDownTime > 0) {
+            CoolDownIndicator(coolDownTime = coolDownTime)
+        } else {
+            IconButton(
+                modifier = Modifier.semantics { contentDescription = description },
+                enabled = isSendButtonEnabled && isInputValid,
+                content = {
+                    val layoutDirection = LocalLayoutDirection.current
+
+                    Icon(
+                        modifier = Modifier.mirrorRtl(layoutDirection = layoutDirection),
+                        painter = painterResource(id = R.drawable.stream_compose_ic_send),
+                        contentDescription = stringResource(id = R.string.stream_compose_send_message),
+                        tint = if (isInputValid) Color(0xFFF36575) else ChatTheme.colors.textLowEmphasis
+                    )
+                },
+                onClick = {
+                    if (isInputValid) {
+                        onSendMessage(value, attachments)
+                    }
+                }
             )
         }
     }

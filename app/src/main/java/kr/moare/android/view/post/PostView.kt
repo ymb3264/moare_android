@@ -31,10 +31,7 @@ import kr.moare.android.R
 import kr.moare.android.components.PostListView
 import kr.moare.android.components.SearchBar
 import kr.moare.android.entities.BottomSheet
-import kr.moare.android.utils.MainCurrentBottomSheet
-import kr.moare.android.utils.MainNavItem
-import kr.moare.android.utils.SplashNavItem
-import kr.moare.android.utils.isScrollingUp
+import kr.moare.android.utils.*
 import kr.moare.android.viewmodel.common.SearchViewModel
 import kr.moare.android.viewmodel.post.PostViewModel
 
@@ -57,6 +54,8 @@ fun PostView(
     val currentLocation by postVM.currentLocationFlow.collectAsState("")
 
     val searchList by searchVM.searchList.collectAsState()
+
+    val shouldSetLocation by postVM.shouldSetLocation.collectAsState()
 
     var query by remember { mutableStateOf("") }
     var alert by remember { mutableStateOf(false) }
@@ -101,7 +100,7 @@ fun PostView(
                     if (showSearchView) {
                         SearchBar(modifier = Modifier
                             .weight(1f),
-                            placeholder = "검색",
+                            placeholder = StringResources.search,
                             text = query,
                             textClear = { query = "" },
                             onTextChange = {
@@ -117,7 +116,7 @@ fun PostView(
                             onClick = { postVM.showSearchView.value = false },
                             colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
                         ) {
-                           Text(text = "취소")
+                           Text(text = StringResources.cancel)
                         }
                     } else {
                         Icon(
@@ -153,8 +152,8 @@ fun PostView(
             )
         },
     ) { padding ->
-        Box() {
-            if (currentLocation.isEmpty()) {
+        Box(Modifier.fillMaxSize()) {
+            if (shouldSetLocation) {
                 Column(
                     Modifier
                         .padding(padding)
@@ -162,17 +161,7 @@ fun PostView(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    TextButton(
-                        onClick = {
-                            postVM.removeToken()
-                        },
-                        modifier = Modifier
-                            .padding(top = 15.dp),
-                    ) {
-                        Text(text = "토큰 삭제")
-                    }
-
-                    Text(text = "운동을 즐기시는\n지역을 설정해주세요.",
+                    Text(text = StringResources.setCurrentLocationMessage,
                         color = Color.Gray,
                         textAlign = TextAlign.Center)
 
@@ -180,41 +169,44 @@ fun PostView(
                         onClick = { bottomSheet.mainOpenSheet(MainCurrentBottomSheet.FindLocation) },
                         modifier = Modifier,
                     ) {
-                        Text(text = "지역 설정하기")
+                        Text(text = StringResources.setCurrentLocation)
                     }
                 }
             } else {
-                Column(Modifier.padding(padding)) {
-                    if (scrollingUp) {
-                        offset = listState.firstVisibleItemScrollOffset
-                        if (((offset - newOffset) / 200) > 0) {
-                            postVM.getMorePost()
-                            newOffset = offset
-                        }
-                    } else {
-                        offset = listState.firstVisibleItemScrollOffset
-                        newOffset = offset
-                    }
+//                    if (scrollingUp) {
+//                        offset = listState.firstVisibleItemScrollOffset
+//                        if (((offset - newOffset) / 200) > 0) {
+//                            postVM.getMorePost()
+//                            newOffset = offset
+//                        }
+//                    } else {
+//                        offset = listState.firstVisibleItemScrollOffset
+//                        newOffset = offset
+//                    }
 
+                if (noPost) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = StringResources.noPostInCurrentLocation)
+                    }
+                } else {
                     SwipeRefresh(
                         state = rememberSwipeRefreshState(loading),
                         onRefresh = {
 //                            postVM.getPosts()
                         }
                     ) {
-                        if (noPost) {
-                            Text(text = "주변 지역에 게시물이 없습니다.",
-                                modifier = Modifier.fillMaxWidth())
-                        } else {
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                                state = listState
-                            ) {
-                                PostListView(postList, postNavController)
-                            }
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                            state = listState
+                        ) {
+                            PostListView(postList, postNavController)
                         }
+
                     } // swipeRefresh
-                } // column
+                }
             } // if else
 
             if (alert) {
@@ -224,12 +216,12 @@ fun PostView(
                         TextButton(onClick = {
                             alert = false
                         }) {
-                            Text(text = "확인")
+                            Text(text = StringResources.confirm)
                         }
                     },
-                    title = { Text(text = "게시물 작성") },
+                    title = { Text(text = StringResources.createPostAlertTitle) },
                     text = {
-                        Text(text = "지역을 설정해야 게시물 작성을 할 수 있습니다.")
+                        Text(text = StringResources.createdPostAlertMessage)
                     }
                 )
             }
@@ -250,6 +242,10 @@ fun PostView(
                 interactionSource = remember { MutableInteractionSource() }
             ) { bottomSheet.mainCloseSheet() }
         )
+    }
+
+    listState.LoadMore(buffer = 2) {
+        postVM.getMorePost()
     }
 }
 

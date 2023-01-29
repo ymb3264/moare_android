@@ -12,19 +12,32 @@ object APIRoutes {
 
     // login
     const val login = "$host/login"
+    const val refresh = "$login/refresh"
+    const val loginEmailCode = "$login/emailcode"
+    const val newPwd = "$login/newpwd"
 
     // post, like
     const val post = "$host/post"
-    const val userPost = "$post/user"
-    const val onePost = "$post/a"
+    const val postUpdate = "$post/update"
+    const val postDelete = "$post/delete"
+    const val morePost = "$post/more"
+    const val onePost = "$post/one"
+    const val postReport = "$post/report"
+
     const val like = "$post/like"
     const val unlike = "$post/unlike"
+
+    const val userPost = "$post/user"
+    const val moreUserPost = "$post/user_more"
 
     // profile
     const val profile = "$host/profile"
     const val userProfile = "$profile/user"
     const val teamProfile = "$profile/team"
     const val myAccounts = "$profile/accounts"
+    const val profileDelete = "$profile/delete"
+    const val profileReport = "$profile/report"
+    const val profileBlock = "$profile/block"
 
     // follow
     const val follow = "$host/follow/add"

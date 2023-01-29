@@ -1,7 +1,6 @@
 package kr.moare.android.view.navgraph
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -22,28 +21,33 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import kr.moare.android.components.EmptyView
 import kr.moare.android.entities.BottomSheet
 import kr.moare.android.utils.BottomTabNavItem
 import kr.moare.android.utils.MainCurrentBottomSheet
 import kr.moare.android.view.common.FindLocationView
 import kr.moare.android.view.post.LocationListView
+import kr.moare.android.view.post.PostUpdateView
 import kr.moare.android.view.profile.*
 import kr.moare.android.viewmodel.post.PostViewModel
-import kr.moare.android.viewmodel.profile.ProfileViewModel
+import kr.moare.android.viewmodel.profile.MyProfileViewModel
+import kr.moare.android.viewmodel.start.LoginViewModel
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalAnimationApi::class)
 @SuppressLint("FlowOperatorInvokedInComposition")
 @Composable
 fun BottomTabNavGraph(
     mainNavController: NavController,
+    myProfileNavController: NavHostController,
     bottomSheet: BottomSheet,
-    postNavController: NavController
+    loadingNavController: NavController,
+    profileVM: MyProfileViewModel
 ) {
     val postVM: PostViewModel = hiltViewModel()
-    val profileVM: ProfileViewModel = hiltViewModel()
 
     val bottomTabNavController = rememberNavController()
+    val postNavController = rememberAnimatedNavController()
 
     BottomSheetScaffold(
         scaffoldState = bottomSheet.mainSheetScaffoldState,
@@ -61,13 +65,15 @@ fun BottomTabNavGraph(
                         profileVM
                     )
                 }
-                MainCurrentBottomSheet.UpdateProfile -> ProfileUpdateView(
+                MainCurrentBottomSheet.UpdateProfile -> MyProfileUpdateView(
                     bottomSheet,
                     profileVM
                 )
                 MainCurrentBottomSheet.MyAccounts -> MyAccountsView(
                     bottomSheet,
-                    profileVM
+                    profileVM,
+                    postVM,
+                    postNavController
                 )
                 MainCurrentBottomSheet.LocationList -> LocationListView(
                     bottomSheet
@@ -75,7 +81,7 @@ fun BottomTabNavGraph(
                 MainCurrentBottomSheet.Empty -> EmptyView()
             }
         },
-        sheetPeekHeight = 0.dp
+        sheetPeekHeight = bottomSheet.sheetHeight.dp
     ) {
         Scaffold(
             bottomBar = { BottomTab(navController = bottomTabNavController) }
@@ -102,6 +108,8 @@ fun BottomTabNavGraph(
                             bottomTabNavController = bottomTabNavController,
                             bottomSheet = bottomSheet,
                             profileVM = profileVM,
+                            loadingNavController = loadingNavController,
+                            myProfileNavController = myProfileNavController,
                         )
                     }
                 }

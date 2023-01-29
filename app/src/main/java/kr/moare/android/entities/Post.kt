@@ -12,9 +12,11 @@ import java.io.File
 @Serializable
 @Parcelize
 data class Post(
+    var userID: String,
+    var postCreatedAt: String,
+    var userCreatedAt: String,
     var username: String,
     var profileImage: String,
-    var createdAt: String,
     var yearAndMonth: String,
     var mediaObj: List<MediaObj>,
     var content: String,
@@ -22,9 +24,8 @@ data class Post(
     var place: String,
     var x: String,
     var y: String,
-    var like: List<String>? = null,
+    var like: List<String> = listOf(),
     val updatedAt: String? = null,
-    val deleted: Boolean = false,
     @Transient
     var imageRequest: @RawValue List<ImageRequest>? = null,
     @Transient
@@ -39,20 +40,50 @@ data class MediaObj(
 ) : Parcelable
 
 @Serializable
-data class LikeObj(
+data class CreatePost(
+    var postCreatedAt: String,
+    var userCreatedAt: String,
     var username: String,
-    var postUsername: String,
-    var postCreatedAt: String
+    var profileImage: String,
+    var yearAndMonth: String,
+    var mediaObj: List<MediaObj>,
+    var content: String,
+    var sportHashtag: List<String>,
+    var place: String,
+    var x: String,
+    var y: String,
+    var userHashtag: List<String> = mutableListOf()
 )
 
 @Serializable
-@Parcelize
-data class MediaUrlObj(
-    var num: Int,
-    var url: String
-) : Parcelable
+data class UpdatePost(
+    var postCreatedAt: String,
+    var updatedAt: String,
+    var content: String,
+    var sportHashtag: List<String>,
+    var place: String,
+    var x: String,
+    var y: String,
+    var userHashtag: MutableList<String> = mutableListOf()
+)
+
+data class PostListObj(
+    var postList: MutableList<Post>,
+    var isLoaded: Boolean
+)
 
 data class SelectedMedia(
     var uri: Uri,
-    var type: String
+    var type: String,
+    // index for preselected attachment
+    var index: Int? = null
+)
+
+@Serializable
+data class LikeObj(
+    var userID: String,
+    var userCreatedAt: String,
+    var username: String,
+    var postUserID: String,
+    var postCreatedAt: String
 )

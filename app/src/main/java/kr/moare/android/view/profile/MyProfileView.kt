@@ -16,26 +16,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import kr.moare.android.R
 import kr.moare.android.components.*
 import kr.moare.android.entities.BottomSheet
-import kr.moare.android.entities.Profile
+import kr.moare.android.ui.theme.MoareTheme
 import kr.moare.android.utils.*
-import kr.moare.android.view.*
-import kr.moare.android.viewmodel.profile.ProfileViewModel
+import kr.moare.android.viewmodel.profile.MyProfileViewModel
 
 @Composable
 fun MyProfileView(
     mainNavController: NavController,
     myProfileNavController: NavController,
     bottomSheet: BottomSheet,
-    profileVM: ProfileViewModel,
+    profileVM: MyProfileViewModel,
 ) {
     val profile by profileVM.myProfile.collectAsState()
 //    val encodedProfile by profileVM.profileFlow.collectAsState("")
@@ -47,12 +47,16 @@ fun MyProfileView(
     var offset by remember { mutableStateOf(0) }
     var newOffset by remember { mutableStateOf(0) }
 
+    var overflowed by remember { mutableStateOf(false)}
+    var moreContent by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     TextButton(
                         onClick = {
+                            profileVM.collectAccounts()
                             bottomSheet.mainOpenSheet(MainCurrentBottomSheet.MyAccounts)
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)
@@ -83,7 +87,7 @@ fun MyProfileView(
                             .padding(start = 10.dp, end = 5.dp)
                             .size(28.dp)
                             .clickable {
-
+                                myProfileNavController.navigate(MyProfileNavItem.SETTINGS.name)
                             },
                     )
                 },
@@ -97,14 +101,14 @@ fun MyProfileView(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 10.dp)
+                    .padding(bottom = 12.dp),
             ) {
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 10.dp)
                         .clip(CircleShape)
                         .size(100.dp)
+                        .background(Color.Gray)
                 ) {
                     if (profile.profileImage.isEmpty()) {
                         Icon(
@@ -112,7 +116,7 @@ fun MyProfileView(
                             contentDescription = "",
                             tint = Color.Gray,
                             modifier = Modifier
-                                .size(120.dp)
+                                .size(100.dp)
                                 .background(Color.LightGray),
                         )
                     } else {
@@ -134,33 +138,56 @@ fun MyProfileView(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp)
-                        .padding(horizontal = 10.dp),
-                    verticalArrangement = Arrangement.SpaceBetween
+                        .padding(start = 10.dp),
                 ) {
                     Text(
                         text = profile.name,
                         style = MaterialTheme.typography.body2,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier
+                            .padding(top = 8.dp, bottom = 4.dp)
                     )
 
-                    Text(
-                        text = profile.content,
-                        style = MaterialTheme.typography.body2
-                    )
+                    Row(
+                        modifier = Modifier
+                            .padding(bottom = 8.dp)
+                            .clickable { moreContent = !moreContent },
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Text(
+                            text = profile.content,
+                            style = MaterialTheme.typography.body2,
+                            maxLines = if (moreContent) Int.MAX_VALUE else 3,
+                            overflow = TextOverflow.Clip,
+                            modifier = Modifier.weight(0.8f, false),
+                            onTextLayout = {
+                                overflowed = it.hasVisualOverflow
+                            }
+                        )
+
+                        if (overflowed) {
+                            Text(
+                                text = " ...더보기",
+                                modifier = Modifier.weight(0.2f),
+                                style = MaterialTheme.typography.caption
+                            )
+                        }
+                    }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_place),
-                            contentDescription = "place",
-                            modifier = Modifier.size(20.dp).padding(end = 4.dp)
-                        )
+                        if (profile.place.isNotEmpty()) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_place),
+                                contentDescription = "place",
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .padding(end = 4.dp)
+                            )
+                        }
                         Text(
                             text = profile.place,
                             style = MaterialTheme.typography.button,
-                            color = Color.DarkGray
                         )
                     }
                 }
@@ -170,7 +197,7 @@ fun MyProfileView(
                 Text(
                     text = it.joinToString(" "),
                     modifier = Modifier
-                        .padding(start = 20.dp, end = 10.dp, bottom = 10.dp),
+                        .padding(start = 20.dp, end = 10.dp, bottom = 4.dp),
                     color = MaterialTheme.colors.primary
                 )
             }
@@ -195,11 +222,12 @@ fun MyProfileView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = if (profile.teamOrMember != null) profile.teamOrMember?.size.toString() else "0",
+//                            text = if (profile.teamOrMember != null) profile.teamOrMember?.size.toString() else "0",
+                            text = "32",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal
                         )
-                        Text(text = "team", fontSize = 16.sp, fontWeight = FontWeight.Normal)
+                        Text(text = if (profile.isTeam) StringResources.member else StringResources.team, fontSize = 16.sp, fontWeight = FontWeight.Normal)
                     }
                 }
                 TextButton(
@@ -216,11 +244,12 @@ fun MyProfileView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = if (profile.follower != null) profile.follower?.size.toString() else "0",
+//                            text = if (profile.follower != null) profile.follower?.size.toString() else "0",
+                            text = "110",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal
                         )
-                        Text(text = "follower", fontSize = 16.sp, fontWeight = FontWeight.Normal)
+                        Text(text = StringResources.follower, fontSize = 16.sp, fontWeight = FontWeight.Normal)
                     }
                 }
                 TextButton(
@@ -237,11 +266,12 @@ fun MyProfileView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = if (profile.following != null) profile.following?.size.toString() else "0",
+//                            text = if (profile.following != null) profile.following?.size.toString() else "0",
+                            text = "46",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal
                         )
-                        Text(text = "following", fontSize = 16.sp, fontWeight = FontWeight.Normal)
+                        Text(text = StringResources.following, fontSize = 16.sp, fontWeight = FontWeight.Normal)
                     }
                 }
             }
@@ -254,10 +284,10 @@ fun MyProfileView(
             ) {
                 ProfileButton(
                     modifier = Modifier,
-                    text = if (profile.isTeam) "프로필 편집" else "팀 프로필 생성"
+                    text = if (profile.isTeam) StringResources.message else StringResources.teamProfileCreateButton
                 ) {
                     if (profile.isTeam) {
-                        bottomSheet.mainOpenSheet(MainCurrentBottomSheet.UpdateProfile)
+                        mainNavController.navigate(MainNavItem.MESSAGELIST.name)
                     } else {
                         bottomSheet.mainOpenSheet(MainCurrentBottomSheet.CreateTeamProfile)
                     }
@@ -267,35 +297,30 @@ fun MyProfileView(
 
                 ProfileButton(
                     modifier = Modifier,
-                    text = if (profile.isTeam) "메세지" else "프로필 편집"
+                    text = StringResources.profileUpdateNavigationTitle
                 ) {
-                    if (profile.isTeam) {
-                        mainNavController.navigate(MainNavItem.MESSAGELIST.name)
-                    } else {
-                        bottomSheet.mainOpenSheet(MainCurrentBottomSheet.UpdateProfile)
-                    }
+                    bottomSheet.mainOpenSheet(MainCurrentBottomSheet.UpdateProfile)
                 }
             }
 
             ProfileDivideLine()
 
-            if (scrollingUp) {
-                offset = listState.firstVisibleItemScrollOffset
-                if (((offset - newOffset) / 200) > 0) {
+//            if (scrollingUp) {
+//                offset = listState.firstVisibleItemScrollOffset
+//                if (((offset - newOffset) / 200) > 0) {
 //                    postVM.getMorePost()
-                    newOffset = offset
-                }
-            } else {
-                offset = listState.firstVisibleItemScrollOffset
-                newOffset = offset
-            }
+//                    newOffset = offset
+//                }
+//            } else {
+//                offset = listState.firstVisibleItemScrollOffset
+//                newOffset = offset
+//            }
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 state = listState
             ) {
-//                ProfilePostListView(postList, myProfileNavController)
-                PostListView(postList, myProfileNavController)
+                ProfilePostListView(postList, myProfileNavController)
             }
         }
 
@@ -317,6 +342,6 @@ fun MyProfileView(
 //@Composable
 //fun MyProfileViewPreview() {
 //    MoareTheme {
-//        MyProfileView(navController = rememberNavController())
+//        MyProfileView(rememberNavController(), rememberNavController())
 //    }
 //}

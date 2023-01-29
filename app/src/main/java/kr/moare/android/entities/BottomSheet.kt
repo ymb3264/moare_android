@@ -5,6 +5,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import kr.moare.android.utils.MainCurrentBottomSheet
 import kr.moare.android.utils.SubCurrentBottomSheet
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class BottomSheet @OptIn(ExperimentalMaterialApi::class) constructor(
@@ -39,6 +40,7 @@ data class BottomSheet @OptIn(ExperimentalMaterialApi::class) constructor(
     @OptIn(ExperimentalMaterialApi::class)
     val subCloseSheet: () -> Unit = {
         coroutineScope.launch {
+            sheetHeight = 0
             subSheetScaffoldState.bottomSheetState.collapse()
             subSheet = SubCurrentBottomSheet.Empty
         }
@@ -51,4 +53,6 @@ data class BottomSheet @OptIn(ExperimentalMaterialApi::class) constructor(
             mainSheetScaffoldState.bottomSheetState.expand()
         }
     }
+
+    var sheetHeight: Int = 0
 }

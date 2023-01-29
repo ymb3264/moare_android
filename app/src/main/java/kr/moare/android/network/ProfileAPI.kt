@@ -1,7 +1,6 @@
 package kr.moare.android.network
 
 import android.util.Log
-import kr.moare.android.entities.Post
 import kr.moare.android.utils.network.APIRoutes
 import kr.moare.android.utils.network.KtorClient
 import io.ktor.client.call.*
@@ -11,9 +10,7 @@ import io.ktor.http.*
 import io.ktor.util.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kr.moare.android.entities.CreateTeamProfile
-import kr.moare.android.entities.Profile
-import kr.moare.android.entities.UpdateProfile
+import kr.moare.android.entities.*
 import java.io.File
 
 class ProfileAPI {
@@ -36,11 +33,17 @@ class ProfileAPI {
         }.body()
     }
 
-    suspend fun getUserPosts(username: String): List<Post> {
-        return KtorClient.httpClient.get(APIRoutes.userPost) {
-            url {
-                parameters.append("username", username)
-            }
+    suspend fun getUserPosts(userID: String, username: String): List<Post> {
+        return KtorClient.httpClient.post(APIRoutes.userPost) {
+            val obj = mapOf("userID" to userID, "username" to username)
+            setBody(obj)
+        }.body()
+    }
+
+    suspend fun getMoreUserPosts(userID: String, username: String, postCreatedAt: String): List<Post> {
+        return KtorClient.httpClient.post(APIRoutes.moreUserPost) {
+            val obj = mapOf("userID" to userID, "username" to username, "postCreatedAt" to postCreatedAt)
+            setBody(obj)
         }.body()
     }
 
@@ -66,8 +69,9 @@ class ProfileAPI {
         }.body()
     }
 
-    suspend fun updateProfile(token: String, profile: UpdateProfile, profileImage: File?): Profile {
-        val jsonProfile = Json.encodeToString(profile)
+    suspend fun updateProfile(token: String, profile: RequestUpdateProfile, profileImage: File?): Profile {
+        val json = Json { encodeDefaults = true }
+        val jsonProfile = json.encodeToString(profile)
 
         return KtorClient.httpClient.submitFormWithBinaryData(
            url = APIRoutes.profile,
@@ -95,4 +99,55 @@ class ProfileAPI {
             }
         }.body()
     }
+
+    suspend fun deleteProfile(token: String, profile: Profile): MessageResponse {
+        return KtorClient.httpClient.post(APIRoutes.profileDelete) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+            setBody(profile)
+        }.body()
+    }
+
+    suspend fun reportUser(token: String, obj: Map<String, String>): MessageResponse {
+        return KtorClient.httpClient.post(APIRoutes.profileReport) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+            setBody(obj)
+        }.body()
+    }
+
+    suspend fun blockUser(token: String, obj: BlockUserObj): Profile {
+        return KtorClient.httpClient.post(APIRoutes.profileBlock) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+            setBody(obj)
+        }.body()
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

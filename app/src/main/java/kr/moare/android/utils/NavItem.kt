@@ -2,16 +2,16 @@ package kr.moare.android.utils
 
 import kr.moare.android.R
 
-enum class SplashNavItem {
-    Loading, JoinSplash, Main, Start
+enum class LoadingNavItem {
+    StartLoading, Main, Start
 }
 
 enum class StartNavItem {
-    Start, Login, Email, Auth, Pwd, Username, SportSelect;
+    Start, Login, EmailForNewPwd, AuthForNewPwd, NewPwd, Email, Auth, Pwd, Username, JoinSportAdd, TOS, LOGININFOSAVE, JOINSPLASH
 }
 
 enum class MainNavItem {
-    MAIN, POSTCREATE, MESSAGELIST
+    MAIN, POSTCREATE, POSTCREATEDETAIL, MESSAGELIST, POSTUPDATE, POSTUPDATEDETAIL
 }
 
 enum class BottomTabNavItem(val icon: Int?) {
@@ -21,15 +21,11 @@ enum class BottomTabNavItem(val icon: Int?) {
 }
 
 enum class PostNavItem {
-    POST, POSTDETAIL, USERPROFILE, TEAMPROFILE
-}
-
-enum class PostCreateNavItem {
-    POSTCREATE, POSTCCREATEDETAIL
+    POST, POSTDETAIL, USERPROFILE, DEEPLINKPOSTDETAIL
 }
 
 enum class MyProfileNavItem {
-    MYPROFILE
+    MYPROFILE, POSTDETAIL, SETTINGS, ACCOUNTINFO, INFO, CONTACT, INFODETAIL
 }
 
 enum class UserProfileNavItem {

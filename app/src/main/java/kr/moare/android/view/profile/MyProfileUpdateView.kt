@@ -1,8 +1,8 @@
 package kr.moare.android.view.profile
 
 import android.Manifest
-import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -11,38 +11,51 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 import kr.moare.android.components.*
 import kr.moare.android.entities.BottomSheet
+import kr.moare.android.ui.theme.MoareTheme
+import kr.moare.android.utils.LoadingNavItem
+import kr.moare.android.utils.StringResources
 import kr.moare.android.view.common.FindLocationView
 import kr.moare.android.utils.SubCurrentBottomSheet
-import kr.moare.android.view.common.GalleryView
+import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.view.common.ProfileGalleryView
-import kr.moare.android.view.common.SportAddView
+import kr.moare.android.view.common.SportSelectView
 import kr.moare.android.viewmodel.common.GalleryViewModel
-import kr.moare.android.viewmodel.profile.ProfileViewModel
-import kr.moare.android.viewmodel.start.JoinViewModel
+import kr.moare.android.viewmodel.common.SportSelectViewModel
+import kr.moare.android.viewmodel.profile.MyProfileViewModel
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class,
+    ExperimentalComposeUiApi::class
+)
 @Composable
-fun ProfileUpdateView(
+fun MyProfileUpdateView(
     bottomSheet: BottomSheet,
-    profileVM: ProfileViewModel,
+    profileVM: MyProfileViewModel,
     galleryVM: GalleryViewModel = hiltViewModel()
 ) {
+    val sportSelectVM: SportSelectViewModel = hiltViewModel()
+
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     var username by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
+    var isDefaultImage by remember { mutableStateOf(false) }
 
     val profile by profileVM.updatedUserProfile.collectAsState()
+
     val updateLoading by profileVM.loading.collectAsState()
 
     val croppedImage by galleryVM.croppedImage.collectAsState()
@@ -54,11 +67,13 @@ fun ProfileUpdateView(
 
     var alert by remember { mutableStateOf(false) }
 
-    val errorText1 = "이미 사용중인 이름입니다"
-    val errorText2 = "사용자 이름에는 영어 대/소문자, 숫자,\n밑줄(_) 및 마침표(.)만 사용할 수 있습니다."
+    val errorText1 = StringResources.existingUsernameError
+    val errorText2 = StringResources.usernameValidationError
 
-    var checkPermission by remember { mutableStateOf(false) }
-    val permissionState = rememberPermissionState(permission = Manifest.permission.READ_EXTERNAL_STORAGE)
+    var permissionRequested by remember { mutableStateOf(false) }
+    val permissionState = rememberPermissionState(permission = Manifest.permission.READ_EXTERNAL_STORAGE) {
+        permissionRequested = true
+    }
 
     username = profile.username
     name = profile.name
@@ -78,7 +93,7 @@ fun ProfileUpdateView(
         sheetGesturesEnabled = false,
         topBar = {
             TopAppBar(
-                title = { Text(text = "프로필 편집") },
+                title = { Text(text = StringResources.profileUpdateNavigationTitle) },
                 backgroundColor = Color.White,
                 elevation = 0.dp,
                 actions = {
@@ -93,18 +108,20 @@ fun ProfileUpdateView(
                         },
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text(text = "취소")
+                        Text(text = StringResources.cancel)
                     }
                 },
             )
         },
-        sheetPeekHeight = 0.dp,
+        sheetPeekHeight = bottomSheet.sheetHeight.dp,
         sheetContent = {
             when (bottomSheet.subSheet) {
-                SubCurrentBottomSheet.SearchSport -> SportAddView(
-                    bottomSheet = bottomSheet
-                ) { sport ->
-                    profileVM.updatedUserProfile.value.sportHashtag = sport
+                SubCurrentBottomSheet.SearchSport -> SportSelectView(
+                    bottomSheet = bottomSheet,
+                    sportSelectVM = sportSelectVM
+                ) { selectedSport, userHashtag ->
+                    profileVM.updatedUserProfile.value.sportHashtag = selectedSport
+                    profileVM.updatedUserProfile.value.userHashtag = userHashtag
                 }
                 SubCurrentBottomSheet.FindLocation -> FindLocationView(
                     bottomSheet = bottomSheet,
@@ -114,29 +131,37 @@ fun ProfileUpdateView(
                 )
                 SubCurrentBottomSheet.Gallery -> ProfileGalleryView(
                     bottomSheet = bottomSheet,
-                    galleryVM = galleryVM
-                )
+                    galleryVM = galleryVM,
+                    permissionRequested = permissionRequested,
+                    permissionState = permissionState
+                ) { isDefaultImage = false }
                 SubCurrentBottomSheet.Empty -> EmptyView()
             }
         },
     ) { padding ->
         Column(
             modifier = Modifier
-                .fillMaxSize(),
+                .fillMaxSize()
+                .noRippleClickable { keyboardController?.hide() },
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             ProfileImageAddButton(
                 url = profile.profileImage,
-                uri = null
-            ) {
-                if (permissionState.status.isGranted) {
+                uri = croppedImage,
+                isDefaultImage = isDefaultImage,
+                onClick1 = {
+                    keyboardController?.hide()
                     bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
-                } else {
-                    checkPermission = true
-                    permissionState.launchPermissionRequest()
+                },
+                onClick2 = {
+                    galleryVM.croppedImage.value = null
+                    isDefaultImage = true
+                    if (profile.profileImage.isNotEmpty()) {
+                        profileVM.updatedUserProfile.value.shouldUpdateDefaultImage = true
+                    }
                 }
-            }
+            )
 
             ProfileTextField(
                 modifier = Modifier
@@ -172,7 +197,7 @@ fun ProfileUpdateView(
             ProfileTextField(
                 modifier = Modifier
                     .padding(vertical = 6.dp),
-                placeholder = "이름",
+                placeholder = StringResources.namePlaceholder,
                 text = name,
                 onTextChange = {
                     name = it
@@ -182,10 +207,14 @@ fun ProfileUpdateView(
             )
 
             SportOrPlaceAddButton(
-                placeholder = "운동종목",
+                placeholder = StringResources.sportPlaceholder,
                 sport = profile.sportHashtag ?: listOf(),
+                infoRequired = true,
+                infoText = StringResources.sportInfo,
                 required = false
             ) {
+                keyboardController?.hide()
+                bottomSheet.sheetHeight = screenHeight
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.SearchSport)
             }
             SportOrPlaceAddButton(
@@ -196,14 +225,17 @@ fun ProfileUpdateView(
                 } else {
                     ""
                 },
+                infoRequired = true,
+                infoText = StringResources.locationInfo,
                 required = false
             ) {
+                keyboardController?.hide()
                 bottomSheet.subOpenSheet(SubCurrentBottomSheet.FindLocation)
             }
 
             ContentTextField(
                 modifier = Modifier,
-                placeholder = "소개",
+                placeholder = StringResources.updateProfileContentPlaceholder,
                 text = content,
                 onTextChange = {
                     content = it
@@ -213,7 +245,7 @@ fun ProfileUpdateView(
             )
 
             CompleteButton(
-                text = "완료",
+                text = StringResources.complete,
                 enabled = completeBtn,
                 loading = updateLoading
             ) {
@@ -223,11 +255,11 @@ fun ProfileUpdateView(
             }
         }
 
-        if (permissionState.status.isGranted && checkPermission) {
-            galleryVM.loadAttachments()
-            bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
-            checkPermission = false
-        }
+//        if (permissionState.status.isGranted && checkPermission) {
+//            galleryVM.loadAttachments(true)
+//            bottomSheet.subOpenSheet(SubCurrentBottomSheet.Gallery)
+//            checkPermission = false
+//        }
 
         if (alert) {
             AlertDialog(
@@ -237,24 +269,28 @@ fun ProfileUpdateView(
                         bottomSheet.mainCloseSheet()
                         profileVM.resetUpdateProfile()
                     }) {
-                        Text(text = "확인")
+                        Text(text = StringResources.confirm)
                     }
                 },
                 dismissButton = { TextButton(onClick = { alert = false }) {
-                    Text(text = "취소")
+                    Text(text = StringResources.cancel)
                 }},
-                title = { Text(text = "작성내용 삭제") },
-                text = { Text(text = "작성중인 내용이 삭제됩니다.") }
+                title = { Text(text = StringResources.deleteFormTitle) },
+                text = { Text(text = StringResources.deleteFormMessage) }
             )
         }
     } // scaffold
+
+    LaunchedEffect(null) {
+        profile.sportHashtag?.let { sportSelectVM.getSportList(it) }
+    }
 }
 
-//@OptIn(ExperimentalMaterialApi::class)
-//@Preview(showBackground = true)
-//@Composable
-//fun UpdateMyProfileViewPreview() {
-//    MoareTheme {
-//        UpdateMyProfileView(rememberBottomSheetScaffoldState())
-//    }
-//}
+@OptIn(ExperimentalMaterialApi::class)
+@Preview(showBackground = true)
+@Composable
+fun UpdateMyProfileViewPreview() {
+    MoareTheme {
+//        MyProfileUpdateView(bottomSheet = BottomSheet())
+    }
+}

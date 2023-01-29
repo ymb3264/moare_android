@@ -3,20 +3,26 @@ package kr.moare.android.entities
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class FollowObj(
-    var username: String,
-    var createdAt: String,
-    var isTeam: Boolean,
-    var targetUsername: String,
-    var targetEmail: String,
-    var targetCreatedAt: String,
+data class RequestFollowObj(
+    var userObj: UserFollowObj,
+    var targetObj: UserFollowObj,
+    var userIsTeam: Boolean,
     var targetIsTeam: Boolean
+)
+
+// 하나로 통합
+@Serializable
+data class UserFollowObj(
+    var userID: String,
+    var createdAt: String,
+    var profileImage: String,
+    var username: String
 )
 
 @Serializable
 data class ResponseFollowObj(
-    var following: List<String>,
-    var teamOrMember: List<String>,
-    var targetFollower: List<String>,
-    var targetTeamOrMember: List<String>
+    var following: List<FollowObj>,
+    var teamOrMember: List<FollowObj>?,
+    var targetFollower: List<FollowObj>,
+    var targetTeamOrMember: List<FollowObj>?
 )

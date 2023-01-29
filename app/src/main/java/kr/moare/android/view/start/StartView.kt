@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kr.moare.android.ui.theme.MoareTheme
 import kr.moare.android.utils.StartNavItem
+import kr.moare.android.utils.StringResources
 
 @Composable
 fun StartView(navController: NavController) {
@@ -40,7 +41,7 @@ fun StartView(navController: NavController) {
                 defaultElevation = 0.dp
             )
         ) {
-            Text(text = "로그인", fontSize = 20.sp, color = Color.Gray)
+            Text(text = StringResources.login, fontSize = 20.sp, color = Color.Gray)
         }
 
         MiddleDesign()

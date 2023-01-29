@@ -42,6 +42,7 @@ fun StartViewTextField(
                 backgroundColor = Color.White,
                 focusedIndicatorColor = Color.Gray,
             ),
+            maxLines = 1,
             placeholder = {
                 Text(
                     modifier = Modifier.fillMaxWidth(),
@@ -96,6 +97,7 @@ fun PwdTextField(
             backgroundColor = Color.White,
             focusedIndicatorColor = Color.Gray,
         ),
+        maxLines = 1,
         placeholder = {
             Text(
                 modifier = Modifier.fillMaxWidth(),

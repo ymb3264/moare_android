@@ -9,6 +9,22 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.util.Log
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -246,5 +262,53 @@ object UriUtil {
         val ext = context.contentResolver.getType(uri)!!.split("/").last()
 
         return "$name.$ext"
+    }
+}
+
+@Composable
+fun VideoPlayer(uri: Uri, isPaused: Boolean = false) {
+    val context = LocalContext.current
+
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context)
+            .build()
+            .apply {
+                val defaultDataSourceFactory = DefaultDataSource.Factory(context)
+                val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(
+                    context,
+                    defaultDataSourceFactory
+                )
+                val source = ProgressiveMediaSource.Factory(dataSourceFactory)
+                    .createMediaSource(MediaItem.fromUri(uri))
+
+                setMediaSource(source)
+                prepare()
+            }
+    }
+
+    exoPlayer.playWhenReady = true
+    exoPlayer.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+    exoPlayer.repeatMode = Player.REPEAT_MODE_ALL
+//    exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
+
+    DisposableEffect(
+        AndroidView(factory = {
+            PlayerView(context).apply {
+                hideController()
+                useController = false
+//                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                player = exoPlayer
+                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            }
+        })
+    ) {
+        onDispose { exoPlayer.release() }
+    }
+
+    if (isPaused) {
+        exoPlayer.pause()
+    } else {
+        exoPlayer.play()
     }
 }

@@ -2,13 +2,17 @@ package kr.moare.android.view.post
 
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.widget.FrameLayout
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,35 +21,31 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.media3.common.C
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.ProgressiveMediaSource
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import kr.moare.android.R
-import kr.moare.android.utils.innerShadow
-import kr.moare.android.entities.Post
-import kr.moare.android.viewmodel.post.PostViewModel
 import com.google.accompanist.pager.*
-import kr.moare.android.components.StartViewTextField
-import kr.moare.android.entities.MediaObj
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kr.moare.android.R
+import kr.moare.android.entities.BottomSheet
+import kr.moare.android.entities.Post
 import kr.moare.android.ui.theme.MoareTheme
+import kr.moare.android.utils.*
+import kr.moare.android.viewmodel.post.PostViewModel
+import kr.moare.android.viewmodel.profile.MyProfileViewModel
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
@@ -57,30 +57,33 @@ fun PostDetailView(
     postIndex: Int
 ) {
     val pagerState = rememberPagerState()
+    val coroutineScope = rememberCoroutineScope()
 
     //...더보기
+    val configuration = LocalConfiguration.current
+    val localDensity = LocalDensity.current
+    val screenHeight = configuration.screenHeightDp
     var overflowed by remember { mutableStateOf(false)}
     var moreContent by remember { mutableStateOf(false) }
     var contentHeight by remember { mutableStateOf(0.dp) }
+    var dropMenuExpanded by remember { mutableStateOf(false) }
 
-    val postList by postVM.postsList.collectAsState()
-    val postLike by postVM.postLike.collectAsState()
-    val post = postList[listIndex][postIndex]
-    postVM.postLike.value = postList[listIndex][postIndex].like ?: listOf()
-
+    // 좋아요 즉각반응용 변수
+    var postLike by remember { mutableStateOf(post.like) }
 
     // share
     val sendIntent: Intent = Intent().apply {
         action = Intent.ACTION_SEND
-        putExtra(Intent.EXTRA_TEXT, "hi")
+        putExtra(Intent.EXTRA_TEXT, "https://moare.kr/post/one?yearAndMonth=${post.yearAndMonth}&postCreatedAt=${post.postCreatedAt}")
         type = "text/plain"
     }
     val shareIntent = Intent.createChooser(sendIntent, null)
     val context = LocalContext.current
 
+    var playButtonPresented by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.BottomStart
     ) {
         HorizontalPager(
             count = post.mediaObj.size,
@@ -98,20 +101,139 @@ fun PostDetailView(
                             blur = 20.dp,
                             color = Color.Black.copy(0.7f),
                             offsetX = 60.dp,
-                            offsetY = 220.dp + contentHeight,
+                            offsetY = contentHeight + 100.dp,
                             spread = 10.dp,
                             offset = Offset(0F, 0F),
-                            size = Size(1300F, 2400f)
+                            size = Size(1300F, 2400F)
                         ),
                 )
             } else {
-                VideoPlayer(uri = Uri.parse(post.mediaObj[page].url))
+                var isPaused by remember { mutableStateOf(false) }
+
+                VideoPlayer(uri = Uri.parse(post.mediaObj[page].url), isPaused)
+                Box(
+                    modifier = Modifier
+                        .clip(RectangleShape)
+                        .fillMaxSize()
+                        .innerShadow(
+                            blur = 20.dp,
+                            color = Color.Black.copy(0.7f),
+                            offsetX = 60.dp,
+                            offsetY = contentHeight + 100.dp,
+                            spread = 10.dp,
+                            offset = Offset(0F, 0F),
+                            size = Size(1300F, 2400F)
+                        )
+                        .noRippleClickable {
+                            coroutineScope.launch {
+                                isPaused = !isPaused
+                                playButtonPresented = !playButtonPresented
+
+                                delay(500)
+                                playButtonPresented = !playButtonPresented
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedVisibility(
+                        visible = playButtonPresented,
+                        exit = fadeOut(animationSpec = tween(400, easing = FastOutLinearInEasing)),
+                        enter = fadeIn(animationSpec = tween(100, easing = LinearEasing))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .size(50.dp)
+                                .background(Color.Black.copy(0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isPaused) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_pause),
+                                    contentDescription = "pause",
+                                    modifier = Modifier.size(30.dp),
+                                    tint = Color.White
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_play_arrow),
+                                    contentDescription = "play",
+                                    modifier = Modifier.size(30.dp),
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
             }
         } // pager
 
         Column(
             modifier = Modifier.padding(horizontal = 12.dp)
         ) {
+            Row() {
+                Spacer(modifier = Modifier.weight(1f))
+
+                Column() {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.Black.copy(0.2f))
+                            .size(30.dp)
+                            .clickable { dropMenuExpanded = true }
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                Modifier
+                                    .clip(CircleShape)
+                                    .size(4.dp)
+                                    .background(Color.White)
+                            )
+                            Box(
+                                Modifier
+                                    .padding(vertical = 2.dp)
+                                    .clip(CircleShape)
+                                    .size(4.dp)
+                                    .background(Color.White)
+                            )
+                            Box(
+                                Modifier
+                                    .clip(CircleShape)
+                                    .size(4.dp)
+                                    .background(Color.White)
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = dropMenuExpanded,
+                        onDismissRequest = { dropMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(onClick = {
+                            dropMenuExpanded = false
+                            postVM.reportPost(post) {
+//                                alert
+                            }
+                        }) {
+                            Text(StringResources.report)
+                        }
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier
+                    .weight(1f)
+                    .onGloballyPositioned { coordinates ->
+                        val height = with(localDensity) { coordinates.size.height.toDp() }
+                        contentHeight = screenHeight.dp - height
+                    }
+            )
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -179,17 +301,17 @@ fun PostDetailView(
                             .padding(end = 10.dp)
                             .clickable {
                                 if (postLike.contains(postVM.username)) {
-                                    if (listIndex != null) {
-                                        if (postIndex != null) {
-                                            postVM.unlike(listIndex, postIndex, post)
-                                        }
-                                    }
+                                    postVM.unlike(listIndex, postIndex, post)
+
+                                    val newLikeList = postLike.toMutableList()
+                                    newLikeList.remove(postVM.username)
+                                    postLike = newLikeList
                                 } else {
-                                    if (listIndex != null) {
-                                        if (postIndex != null) {
-                                            postVM.like(listIndex, postIndex, post)
-                                        }
-                                    }
+                                    postVM.like(listIndex, postIndex, post)
+
+                                    val newLikeList = postLike.toMutableList()
+                                    newLikeList.add(postVM.username)
+                                    postLike = newLikeList
                                 }
                             }
                     )
@@ -242,7 +364,6 @@ fun PostDetailView(
                         modifier = Modifier.weight(0.8f, false),
                         onTextLayout = {
                             overflowed = it.hasVisualOverflow
-                            contentHeight = (it.lineCount * 16).dp
                         }
                     )
 
@@ -265,58 +386,29 @@ fun PostDetailView(
                     modifier = Modifier.weight(0.2f),
                     textAlign = TextAlign.Right
                 )
+
+                Text(
+                    text = " · ",
+                    style = MaterialTheme.typography.body2,
+                    color = Color.White,
+                )
+
+                Text(
+                    text = DateHelper.getDays(post.postCreatedAt),
+                    style = MaterialTheme.typography.body2,
+                    color = Color.White,
+                )
             }
         } // column
     } // box
-}
-
-@Composable
-fun VideoPlayer(uri: Uri) {
-    val context = LocalContext.current
-    
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context)
-            .build()
-            .apply { 
-                val defaultDataSourceFactory = DefaultDataSource.Factory(context)
-                val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(
-                    context,
-                    defaultDataSourceFactory
-                )
-                val source = ProgressiveMediaSource.Factory(dataSourceFactory)
-                    .createMediaSource(MediaItem.fromUri(uri))
-                
-                setMediaSource(source)
-                prepare()
-            }
-    }
-    
-    exoPlayer.playWhenReady = true
-    exoPlayer.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
-//    exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
-    exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
-    
-    DisposableEffect(
-        AndroidView(factory = {
-            PlayerView(context).apply { 
-                hideController()
-                useController = false
-                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                player = exoPlayer
-                layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-            }
-        })
-    ) {
-        onDispose { exoPlayer.release() }
-    }
 }
 
 //@Preview(showBackground = true)
 //@Composable
 //fun PostDetailViewPreview() {
 //    MoareTheme {
-//        PostDetailView(rememberNavController(),
+//        PostDetailView(rememberNavController(), hiltViewModel(),
 //            Post("username", "", "", "",
-//                listOf(), "", listOf("#축구"), "김포시 장기동", "", "", listOf("ss")))
+//                "", "", listOf(), "",  listOf("#축구"), "김포시 장기동", "", "", listOf("ss"), "", false), 0, 0)
 //    }
 //}

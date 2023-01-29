@@ -1,9 +1,8 @@
 package kr.moare.android.network
 
 import android.util.Log
-import kr.moare.android.entities.MessageResponse
+import com.google.protobuf.Api
 import kr.moare.android.utils.network.APIRoutes
-import kr.moare.android.entities.Post
 import kr.moare.android.utils.network.KtorClient
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -12,14 +11,13 @@ import io.ktor.http.*
 import io.ktor.util.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kr.moare.android.entities.LikeObj
-import kr.moare.android.entities.UserDefaultLocation
+import kr.moare.android.entities.*
 import org.json.JSONObject
 import java.io.File
 
 class PostAPI {
 
-    suspend fun createPost(token: String, post: Post, files: List<File>): MessageResponse {
+    suspend fun createPost(token: String, post: CreatePost, files: List<File>): MessageResponse {
         val jsonPost = Json.encodeToString(post)
         return KtorClient.httpClient.submitFormWithBinaryData(
             url = APIRoutes.post,
@@ -40,14 +38,56 @@ class PostAPI {
         }.body()
     }
 
-    suspend fun getPosts(yearAndMonth: String, location: UserDefaultLocation, username: String, date: String): List<Post> {
+    suspend fun updatePost(token: String, post: UpdatePost): Post {
+        return KtorClient.httpClient.post(APIRoutes.postUpdate) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+            setBody(post)
+        }.body()
+    }
+
+    suspend fun deletePost(token: String, post: Post): MessageResponse {
+        return KtorClient.httpClient.post(APIRoutes.postDelete) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+            setBody(post)
+        }.body()
+    }
+
+    suspend fun getPosts(token: String, yearAndMonth: String, location: UserDefaultLocation, username: String, date: String): List<Post> {
         return KtorClient.httpClient.get(APIRoutes.post) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+
             url {
                 parameters.append("yearAndMonth", yearAndMonth)
                 parameters.append("x", location.x)
                 parameters.append("y", location.y)
                 parameters.append("username", username)
                 parameters.append("date", date)
+            }
+        }.body()
+    }
+
+    suspend fun getMorePosts(yearAndMonth: String, location: UserDefaultLocation, postCreatedAt: String): List<Post> {
+        return KtorClient.httpClient.get(APIRoutes.morePost) {
+            url {
+                parameters.append("yearAndMonth", yearAndMonth)
+                parameters.append("x", location.x)
+                parameters.append("y", location.y)
+                parameters.append("postCreatedAt", postCreatedAt)
+            }
+        }.body()
+    }
+
+    suspend fun getPost(yearAndMonth: String, postCreatedAt: String): Post {
+        return KtorClient.httpClient.get(APIRoutes.onePost) {
+            url {
+                parameters.append("yearAndMonth", yearAndMonth)
+                parameters.append("postCreatedAt", postCreatedAt)
             }
         }.body()
     }
@@ -64,29 +104,12 @@ class PostAPI {
         }.body()
     }
 
-    // ---------
-    suspend fun getPost(number: Int): Post {
-        return KtorClient.httpClient.get(APIRoutes.onePost) {
-            url {
-                parameters.append("number", number.toString())
+    suspend fun reportPost(token: String, obj: Map<String, String>): MessageResponse {
+        return KtorClient.httpClient.post(APIRoutes.postReport) {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
             }
-        }.body()
-    }
-
-    suspend fun updatePost(post: Post): String {
-        return KtorClient.httpClient.put(APIRoutes.post) {
-            url {
-//                parameters.append("id", post.postNum.toString())
-            }
-            setBody(post)
-        }.body()
-    }
-
-    suspend fun deletePost(id: String): String {
-        return KtorClient.httpClient.delete(APIRoutes.post) {
-            url {
-                parameters.append("id", id)
-            }
+            setBody(obj)
         }.body()
     }
 }

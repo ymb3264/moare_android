@@ -23,14 +23,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kr.moare.android.R
-import kr.moare.android.utils.SplashNavItem
 import kr.moare.android.viewmodel.start.JoinViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kr.moare.android.utils.LoadingNavItem
 
 @Composable
 fun JoinSplashView(
-    splashNavController: NavController,
+    loadingNavController: NavController,
     joinVM: JoinViewModel
 ) {
     val offset1 = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
@@ -88,8 +88,8 @@ fun JoinSplashView(
 
         delay(1100)
         if (joinSuccess) {
-            splashNavController.popBackStack()
-            splashNavController.navigate(SplashNavItem.Main.name)
+            loadingNavController.popBackStack()
+            loadingNavController.navigate(LoadingNavItem.Main.name)
         }
     }
 

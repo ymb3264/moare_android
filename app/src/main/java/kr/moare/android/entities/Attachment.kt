@@ -12,5 +12,6 @@ data class Attachment(
     var size: Long? = null,
     var isSelected: Boolean = false,
     var selectedPosition: Int? = 0,
-    var videoLength: String? = null,
+    var videoStringLength: String? = null,
+    var videoIntLength: Int? = null
 )

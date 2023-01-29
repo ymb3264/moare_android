@@ -14,9 +14,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -24,15 +26,17 @@ import kr.moare.android.components.SearchBar
 import kr.moare.android.components.SelectedSportHashtag
 import kr.moare.android.components.SportSelectButton
 import kr.moare.android.components.StartViewButton
-import kr.moare.android.utils.SplashNavItem
+import kr.moare.android.utils.StartNavItem
+import kr.moare.android.utils.StringResources
+import kr.moare.android.utils.noRippleClickable
 import kr.moare.android.viewmodel.common.SportSelectViewModel
 import kr.moare.android.viewmodel.start.JoinViewModel
 
+@OptIn(ExperimentalComposeUiApi::class)
 @SuppressLint("UnrememberedMutableState")
 @Composable
-fun SportSelectView(
+fun JoinSportSelectView(
     startNavController: NavController,
-    splashNavController: NavController,
     joinVM: JoinViewModel,
     sportSelectVM: SportSelectViewModel = hiltViewModel()
 ) {
@@ -40,28 +44,32 @@ fun SportSelectView(
     val sportList by sportSelectVM.sportList.collectAsState()
     val newSportList by sportSelectVM.newSportList.collectAsState()
     val selectedSport by sportSelectVM.selectedSport.collectAsState()
-    val showAlert by joinVM.showAlert.collectAsState()
 
+    var alert by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Column(
       modifier = Modifier
           .fillMaxSize()
-          .background(Color.White),
+          .background(Color.White)
+          .noRippleClickable { keyboardController?.hide() },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "스포츠 선택",
+        Text(text = StringResources.sportSelectTitle,
             style = MaterialTheme.typography.subtitle1,
             modifier = Modifier.padding(vertical = 12.dp))
 
-        Text(text = "즐기는 스포츠 1개이상을 선택해주세요.",
+        Text(text = StringResources.sportSelectMessage,
             style = MaterialTheme.typography.body2,
             modifier = Modifier.padding(bottom = 12.dp))
 
         SearchBar(modifier = Modifier
             .padding(horizontal = 12.dp)
             .padding(bottom = 8.dp),
-            placeholder = "검색",
+            placeholder = StringResources.search,
+            isfocused = false,
             text = query,
             textClear = { query = "" },
             onTextChange = {
@@ -96,21 +104,21 @@ fun SportSelectView(
                     .padding(horizontal = 12.dp)
                     .weight(0.7f)
             ) {
-                if (query == "") {
-                    items(sportList.keys.toList()) { sport ->
-                        SportSelectButton(selected = sportList[sport], sport = sport) {
-                            sportSelectVM.selectSport(sport)
-                            joinVM.account.sportHashtag = selectedSport
-                        }
-                    }
-                } else {
-                    items(newSportList.keys.toList()) { sport ->
-                        SportSelectButton(selected = sportList[sport], sport = sport) {
-                            sportSelectVM.newSelectSport(sport)
-                            joinVM.account.sportHashtag = selectedSport
-                        }
-                    }
-                }
+//                if (query == "") {
+//                    items(sportList.keys.toList()) { sport ->
+//                        SportSelectButton(selected = sportList[sport], sport = sport) {
+//                            sportSelectVM.selectSport(sport)
+//                            joinVM.account.sportHashtag = selectedSport
+//                        }
+//                    }
+//                } else {
+//                    items(newSportList.keys.toList()) { sport ->
+//                        SportSelectButton(selected = sportList[sport], sport = sport) {
+//                            sportSelectVM.newSelectSport(sport)
+//                            joinVM.account.sportHashtag = selectedSport
+//                        }
+//                    }
+//                }
             }
         }
 
@@ -118,33 +126,32 @@ fun SportSelectView(
             modifier = Modifier.padding(vertical = 12.dp),
             enabled = true
         ) {
-            joinVM.join(selectedSport.isNotEmpty()) {
-                splashNavController.navigate(SplashNavItem.JoinSplash.name)
+            if (selectedSport.isEmpty()) {
+                alert = true
+            } else {
+                startNavController.navigate(StartNavItem.TOS.name)
             }
         }
 
-        if (showAlert) {
+        if (alert) {
             AlertDialog(
-                onDismissRequest = { joinVM.showAlert.value = false },
+                onDismissRequest = { alert = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        joinVM.join(true) {
-                            splashNavController.navigate(SplashNavItem.JoinSplash.name)
-                        }
+                        startNavController.navigate(StartNavItem.TOS.name)
                     }) {
-                        Text(text = "확인")
+                        Text(text = StringResources.confirm)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        joinVM.showAlert.value = false
+                        alert = false
                     }) {
-                        Text(text = "취소")
+                        Text(text = StringResources.cancel)
                     }
                 },
                 text = {
-                    Text(text = "즐기시는 스포츠 추가 없이 회원가입 하시겠습니까?\n" +
-                            "(추후에 프로필 편집을 통해 추가가 가능합니다.)")
+                    Text(text = StringResources.sportSelectAlertMessage)
                 }
             )
         }

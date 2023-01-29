@@ -8,18 +8,23 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kr.moare.android.utils.PostNavItem
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PostSearchView(
     searchList: List<String>,
     postNavController: NavController
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -43,6 +48,7 @@ fun PostSearchView(
                 } else {
                     TextButton(
                         onClick = {
+                            keyboardController?.hide()
                             postNavController.navigate("${PostNavItem.USERPROFILE.name}/$it")
                         },
                         modifier = Modifier

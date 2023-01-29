@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="kr.moare.android">
 
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:name=".MoareApplication"
@@ -22,6 +23,8 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Moare.NoActionBar">
+            <tools:validation testUrl="https://moare.kr/post/one?yearAndMonth=2023-01&amp;postCreatedAt=2023-01-13T01:07:46" />
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -29,19 +32,30 @@
             </intent-filter>
 
             <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
+                <action android:name="android.intent.action.VIEW" />
 
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="10.0.2.2:8080"
-                    android:scheme="http"/>
+                    android:scheme="https"
+                    android:host="www.moare.kr" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="moare.kr" />
             </intent-filter>
         </activity>
-        <activity android:name=".view.message.MessagesActivity"/>
-        <activity android:name="com.canhub.cropper.CropImageActivity"
-            android:theme="@style/Theme.Moare"/>
+        <activity android:name=".view.message.MessagesActivity" />
+        <activity
+            android:name="com.canhub.cropper.CropImageActivity"
+            android:theme="@style/Theme.Moare" />
     </application>
 
 </manifest>

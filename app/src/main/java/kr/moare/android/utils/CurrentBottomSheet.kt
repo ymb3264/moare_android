@@ -17,3 +17,14 @@ sealed class SubCurrentBottomSheet() {
     object Gallery: SubCurrentBottomSheet()
 //    object ProfileGallery: SubCurrentBottomSheet()
 }
+
+sealed class TermsAgreeBottomSheet() {
+    object Empty: TermsAgreeBottomSheet()
+    object Tos: TermsAgreeBottomSheet()
+    object PrivacyPolicy: TermsAgreeBottomSheet()
+}
+
+sealed class TosDetailBottomSheet() {
+    object Empty: TosDetailBottomSheet()
+    object LocationTos: TosDetailBottomSheet()
+}

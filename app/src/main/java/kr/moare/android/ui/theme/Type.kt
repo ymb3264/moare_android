@@ -43,6 +43,6 @@ val Typography = Typography(
         fontFamily = NanumGothic,
         fontWeight = FontWeight.Light,
         fontSize = 12.sp,
-        color = Color.LightGray
+        color = Color.Gray
     )
 )

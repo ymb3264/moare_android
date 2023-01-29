@@ -24,16 +24,35 @@ class GalleryViewModel @Inject constructor(
     // for profile
     var selectedImage = MutableStateFlow<SelectedMedia?>(null)
     var croppedImage = MutableStateFlow<Uri?>(null)
+
     // for post
+    var tempSelectedMediaList = MutableStateFlow<MutableList<SelectedMedia>>(mutableStateListOf())
     var selectedMediaList = MutableStateFlow<MutableList<SelectedMedia>>(mutableStateListOf())
 
-    init {
-        loadAttachments()
-    }
+//    init {
+//        loadAttachments()
+//    }
 
-    fun loadAttachments() {
-        val images = storageHelper.getMediaAttachments(context, true)
+    fun loadAttachments(isProfile: Boolean) {
+        val images = storageHelper.getMediaAttachments(context, isProfile)
         this.attachments.value = images
+
+        if (selectedMediaList.value.isNotEmpty()) {
+            selectedMediaList.value.forEach { selectedMedia ->
+                val dataSet = attachments.value
+                val newFiles = dataSet.toMutableList()
+                val newItem: Attachment
+
+                newItem = dataSet[selectedMedia.index!!].copy(
+                    isSelected = !newFiles[selectedMedia.index!!].isSelected
+                )
+
+                newFiles.removeAt(selectedMedia.index!!)
+                newFiles.add(selectedMedia.index!!, newItem)
+
+                attachments.value = newFiles
+            }
+        }
     }
 
     fun selectProfileImage(
@@ -50,15 +69,15 @@ class GalleryViewModel @Inject constructor(
         val dataSet = attachments.value
         val newFiles = dataSet.toMutableList()
         val newItem: Attachment
-        val seletedMedia = SelectedMedia(attachment.uri!!, attachment.type!!)
+        val seletedMedia = SelectedMedia(attachment.uri!!, attachment.type!!, index)
 
-        if (selectedMediaList.value.indexOf(seletedMedia) == -1) {
-            selectedMediaList.value.add(seletedMedia)
+        if (tempSelectedMediaList.value.indexOf(seletedMedia) == -1) {
+            tempSelectedMediaList.value.add(seletedMedia)
             newItem = dataSet[index].copy(
                 isSelected = !newFiles[index].isSelected
             )
         } else {
-            selectedMediaList.value.removeAt(selectedMediaList.value.indexOf(seletedMedia))
+            tempSelectedMediaList.value.removeAt(tempSelectedMediaList.value.indexOf(seletedMedia))
             newItem = dataSet[index].copy(
                 isSelected = !newFiles[index].isSelected
             )
