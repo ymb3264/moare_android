@@ -38,10 +38,10 @@
   - 링크를 통한 앱 내 특정 게시물 상세 페이지 진입
 
 ## 스크린샷
-<img width="1080" height="2220" alt="android-post" src="https://github.com/user-attachments/assets/a641bbc0-4604-44c9-b39d-328ce1f116ec" />
-<img width="1080" height="2220" alt="android-userprofile" src="https://github.com/user-attachments/assets/4bd74552-ac6d-4251-aa7b-352c3ee5c772" />
-<img width="1080" height="2220" alt="android-teamprofile" src="https://github.com/user-attachments/assets/21fc943d-5d62-427b-9128-3c29ba9b75fb" />
-<img width="1080" height="2220" alt="android-teamchat" src="https://github.com/user-attachments/assets/f225cb69-b3e9-44cd-916f-0a036042e05d" />
+<img width="24%" alt="android-post" src="https://github.com/user-attachments/assets/a641bbc0-4604-44c9-b39d-328ce1f116ec" />
+<img width="24%" alt="android-userprofile" src="https://github.com/user-attachments/assets/4bd74552-ac6d-4251-aa7b-352c3ee5c772" />
+<img width="24%" alt="android-teamprofile" src="https://github.com/user-attachments/assets/21fc943d-5d62-427b-9128-3c29ba9b75fb" />
+<img width="24%" alt="android-teamchat" src="https://github.com/user-attachments/assets/f225cb69-b3e9-44cd-916f-0a036042e05d" />
 
 ## 기술 스택
 - Kotlin
