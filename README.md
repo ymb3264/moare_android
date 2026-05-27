@@ -43,7 +43,7 @@
 
 ## 기술 스택
 - Kotlin
-- Jetpack Compose
+- Jetpack Compose, Navigation Compose
 - MVVM Architecture
 - Hilt
 - Kotlin Coroutines, Flow, StateFlow
