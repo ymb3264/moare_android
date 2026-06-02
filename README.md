@@ -42,16 +42,16 @@
 <img width="24%" alt="android-teamchat" src="https://github.com/user-attachments/assets/f225cb69-b3e9-44cd-916f-0a036042e05d" />
 
 ## 기술 스택
-- Kotlin
-- Jetpack Compose, Navigation Compose
-- MVVM Architecture
-- Hilt
-- Kotlin Coroutines, Flow, StateFlow
-- Ktor Client, Kotlinx Serialization
-- DataStore, Android Security Crypto
-- Coil, Media3 ExoPlayer
-- Google Play Services Location
-- Stream Chat SDK
+- **Language & UI**: Kotlin, Jetpack Compose
+- **Architecture**: MVVM
+- **Navigation**: Navigation Compose
+- **Dependency Injection**: Hilt
+- **Async & State Management**: Kotlin Coroutines, Flow, StateFlow
+- **Networking & Serialization**: Ktor Client, Kotlinx Serialization
+- **Storage & Security**: DataStore, Android Security Crypto
+- **Media**: Coil, Media3 ExoPlayer
+- **Location**: Google Play Services Location
+- **Chat**: Stream Chat SDK
 
 ## 구조
 - MVVM 기반 구조
